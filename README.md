@@ -2,7 +2,7 @@
 
 ## Structure
 
-An ecosystem consists of **Entities** and an **Environment**.
+An ecosystem consists of **Entities** and an **Environment** and it is run by providing a start **State**.
 
 ### Entity
 
@@ -56,6 +56,17 @@ Environment has:
 #### Element
 
 Element is a non-active part of the environment.
+
+### State
+
+State is the full configuration of the simulation in a single Cycle.
+You need a starting State from which the simulation starts. When the simulation ends, the state at the final
+cycle is stored. The simulation progression is stored as a sequence of States.
+
+A State consists of:
+- the data of each individual Entity
+- the data of each individual Element
+- the Cycle number
 
 ## Simulation
 
