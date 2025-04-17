@@ -3,6 +3,8 @@ project(sim)
 
 set(CMAKE_CXX_STANDARD 23)
 
-include_directories(include)
+# Library target
+add_library(SimFramework INTERFACE)
+target_include_directories(SimFramework INTERFACE include/)
 
-add_executable(sim src/main.cpp)
+add_subdirectory(src)
