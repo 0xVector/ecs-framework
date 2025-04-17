@@ -8,17 +8,6 @@ using namespace sim;
 
 struct TestEntity;
 
-struct EntityB;
-
-struct ComponentB {
-    std::string name = "BBB";
-
-    template<typename... E>
-    void operator()(const event::Cycle, Simulation<E...>& sim) const {
-        std::cout << "Im " << name <<  " at " << sim.cycle() << std::endl;
-    }
-};
-
 struct TestComponent {
     int a;
 
@@ -26,11 +15,11 @@ struct TestComponent {
         a(val) {
     }
 
-    template<typename... Entities>
-    void operator()(const event::Cycle, Simulation<Entities...>& simulation) const {
-        auto e = simulation.template get_entities_of_type<EntityB>()[0];
-        ComponentB c = e.template get_component<ComponentB>();
-        std::cout << "Cycle from A!" << a << " with friend: " << c.name << std::endl;
+    template<typename E>
+    void operator()(E& e, const event::Cycle, Context& ctx) const {
+        // auto e = simulation.template get_entities_of_type<EntityB>()[0];
+        // ComponentB c = e.template get_component<ComponentB>();
+        std::cout << "Cycle"  " from A!" << a << std::endl;
     }
 };
 
@@ -39,18 +28,14 @@ struct TestEntity : Entity<TestEntity, TestComponent> {
     }
 };
 
-struct EntityB : Entity<EntityB, ComponentB> {
-    explicit EntityB() = default;
-};
-
 class Fake {};
 
 int main() {
     auto e = TestEntity(5);
-    auto e2 = EntityB();
-    auto s = Simulation<TestEntity, EntityB>();
-    s.add(e);
-    s.add(e2);
+    // auto e2 = EntityB();
+    auto s = Simulation<TestEntity>();
+    s.entities().add(e);
+    // s.add(e2);
     s.run(10);
 
     std::cout << "Done" << std::endl;
