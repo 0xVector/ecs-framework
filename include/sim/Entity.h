@@ -5,29 +5,12 @@
 #include "Simulation.h"
 
 namespace sim {
-    struct Position {
-        int x;
-        int y;
-
-        Position():
-            x(0), y(0) {
-        }
-
-        Position(const int x, const int y):
-            x(x), y(y) {
-        }
-    };
-
     template<typename E, typename... Components>
     struct Entity {
-        Position position;
         std::tuple<Components...> components;
 
         template<typename... Args>
         explicit Entity(Args&&... args);
-
-        template<typename... Args>
-        explicit Entity(Position position, Args&&... args);
 
         template<typename Event, typename... Entities>
         void dispatch(const Event& event, Simulation<Entities...>& simulation);
@@ -45,12 +28,6 @@ namespace sim {
     template<typename... Args>
     Entity<E, Components...>::Entity(Args&&... args):
         components(std::forward<Args>(args)...) {
-    }
-
-    template<typename E, typename... Components>
-    template<typename... Args>
-    Entity<E, Components...>::Entity(Position position, Args&&... args):
-        position(position), components(std::forward<Args>(args)...) {
     }
 
     template<typename E, typename... Components>
