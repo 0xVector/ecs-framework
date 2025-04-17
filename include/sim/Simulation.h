@@ -5,11 +5,9 @@
 #include <bits/ranges_algo.h>
 
 #include "Event.h"
+#include "Concepts.h"
 
 namespace sim {
-    template<typename Item, typename... Collection>
-    concept OneOf = (std::same_as<std::remove_cvref_t<Item>, Collection> || ...);
-
     template<typename... Entities>
     class Simulation {
     private:
