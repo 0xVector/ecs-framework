@@ -64,8 +64,8 @@ namespace sim {
     template<typename... Entities>
     template<typename Event>
     void Simulation<Entities...>::dispatch_to_all(const Event& event) {
-        (std::ranges::for_each(std::get<std::vector<Entities>>(entities_),
-            [&](auto&& e) { e.dispatch(event, *this); }), ...);
+        (std::ranges::for_each(std::get<std::vector<Entities> >(entities_),
+                               [&](auto&& e) { e.dispatch(event, *this); }), ...);
         // std::apply([&event, this](auto&&... entity_vect) {
         //     (std::ranges::for_each(entity_vect, [&](auto&& e) { e.dispatch(event, *this); }), ...);
         // }, entities_);

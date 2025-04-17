@@ -5,18 +5,35 @@
 #include "Simulation.h"
 
 namespace sim {
+    struct Position {
+        int x;
+        int y;
+
+        Position():
+            x(0), y(0) {
+        }
+
+        Position(const int x, const int y):
+            x(x), y(y) {
+        }
+    };
+
     template<typename E, typename... Components>
     struct Entity {
+        Position position;
         std::tuple<Components...> components;
 
         template<typename... Args>
         explicit Entity(Args&&... args);
 
+        template<typename... Args>
+        explicit Entity(Position position, Args&&... args);
+
         template<typename Event, typename... Entities>
         void dispatch(const Event& event, Simulation<Entities...>& simulation);
 
         template<typename Component>
-        requires OneOf<Component, Components...>
+            requires OneOf<Component, Components...>
         Component get_component();
 
     private:
@@ -31,12 +48,18 @@ namespace sim {
     }
 
     template<typename E, typename... Components>
+    template<typename... Args>
+    Entity<E, Components...>::Entity(Position position, Args&&... args):
+        position(position), components(std::forward<Args>(args)...) {
+    }
+
+    template<typename E, typename... Components>
     template<typename Event, typename... Entities>
     void Entity<E, Components...>::dispatch(const Event& event, Simulation<Entities...>& simulation) {
         (try_dispatch(std::get<Components>(components), event, simulation), ...);
     }
 
-    template<typename E, typename ... Components>
+    template<typename E, typename... Components>
     template<typename Component> requires OneOf<Component, Components...>
     Component Entity<E, Components...>::get_component() {
         return std::get<Component>(components);

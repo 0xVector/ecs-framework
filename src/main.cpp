@@ -40,9 +40,7 @@ struct TestEntity : Entity<TestEntity, TestComponent> {
 };
 
 struct EntityB : Entity<EntityB, ComponentB> {
-    explicit EntityB() : Entity() {
-
-    }
+    explicit EntityB() = default;
 };
 
 class Fake {};
