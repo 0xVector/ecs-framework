@@ -2,122 +2,48 @@
 #define SIMULATION_H
 #include <tuple>
 #include <vector>
-#include <bits/ranges_algo.h>
+#include <algorithm>
 
 #include "Event.h"
 #include "Concepts.h"
 
 namespace sim {
-    class Context;
-
-    template<typename... Entities>
-    class EntityStorage {
-    private:
-        std::tuple<std::vector<Entities>...> entities_;
-
-    public:
-        template<typename Entity>
-        requires OneOf<Entity, Entities...>
-        const std::vector<Entity>& get_all() const;
-
-        template<typename Entity>
-        requires OneOf<Entity, Entities...>
-        std::vector<Entity>& get_all();
-
-        template<typename Entity>
-        requires OneOf<Entity, Entities...>
-        void add(Entity&& entity);
-
-        template<typename Event>
-        void dispatch_to_all(const Event& event, Context& context);
+    struct Context {
+        template<typename E, typename Self>
+        std::vector<E>& do_get_entities(this Self&& self) {
+            return self.template get_entities<E>();
+        }
     };
-
-    class EntityAccessorBase {
-        // virtual ~EntityAccessorBase() = default;
-    };
-
-    class Context final {
-    private:
-        EntityAccessorBase& entity_accessor_;
-
-    public:
-        explicit Context(EntityAccessorBase& entity_accessor);
-
-        EntityAccessorBase& entities();
-    };
-
-    inline Context::Context(EntityAccessorBase& entity_accessor): entity_accessor_(entity_accessor) {
-    }
 
     template<typename... Entities>
     class Simulation {
-    private:
-        using entity_storage_t = EntityStorage<Entities...>;
-        struct EntityAccessor;
+    public:
+        struct SimulationContext;
 
+    private:
+        std::tuple<Entities...> entities_;
         size_t cycle_ = 0;
-        entity_storage_t entities_;
-        EntityAccessor entity_accessor_;
 
     public:
-        Simulation();
+        Simulation() = default;
         virtual ~Simulation();
 
         [[nodiscard]] size_t cycle() const;
 
-        entity_storage_t& entities();
-
         void run(size_t for_cycles);
-    };
 
-    template<typename... Entities>
-    struct Simulation<Entities...>::EntityAccessor final : EntityAccessorBase {
+        template<typename E, typename... Args>
+            requires OneOf<E, Entities...>
+        auto spawn(Args&&... args);
+
     private:
-        entity_storage_t& storage_;
-
-    public:
-        explicit EntityAccessor(entity_storage_t& storage);
-
-        template<typename T>
-        requires OneOf<T, Entities...>
-        std::vector<T> get_all();
+        template<typename Event>
+        void dispatch_to_all(const Event& event, SimulationContext&context);
     };
 
     // Implementation ============================================================================
 
-    template<typename ... Entities>
-    template<typename Entity> requires OneOf<Entity, Entities...>
-    const std::vector<Entity>& EntityStorage<Entities...>::get_all() const {
-        return std::get<std::vector<Entity> >(entities_);
-    }
-
-    template<typename ... Entities>
-    template<typename Entity> requires OneOf<Entity, Entities...>
-    std::vector<Entity>& EntityStorage<Entities...>::get_all() {
-        return std::get<std::vector<Entity> >(entities_);
-    }
-
-    template<typename ... Entities>
-    template<typename Entity> requires OneOf<Entity, Entities...>
-    void EntityStorage<Entities...>::add(Entity&& entity) {
-        std::get<std::vector<std::remove_cvref_t<Entity> > >(entities_).emplace_back(std::forward<Entity>(entity));
-    }
-
-    template<typename ... Entities>
-    template<typename Event>
-    void EntityStorage<Entities...>::dispatch_to_all(const Event& event, Context& context) {
-        (std::ranges::for_each(std::get<std::vector<Entities> >(entities_),
-                       [&](auto&& e) { e.dispatch(event, context); }), ...);
-        // std::apply([&event, this](auto&&... entity_vect) {
-        //     (std::ranges::for_each(entity_vect, [&](auto&& e) { e.dispatch(event, *this); }), ...);
-        // }, entities_);
-    }
-
-    template<typename ... Entities>
-    Simulation<Entities...>::Simulation(): entity_accessor_(entities_) {
-    }
-
-    template<typename ... Entities>
+    template<typename... Entities>
     Simulation<Entities...>::~Simulation() = default;
 
     template<typename... Entities>
@@ -125,14 +51,9 @@ namespace sim {
         return cycle_;
     }
 
-    template<typename ... Entities>
-    typename Simulation<Entities...>::entity_storage_t& Simulation<Entities...>::entities() {
-        return entities_;
-    }
-
     template<typename... Entities>
     void Simulation<Entities...>::run(const size_t for_cycles) {
-        Context context{entity_accessor_};
+        SimulationContext context{entities()};
 
         entities_.dispatch_to_all(event::SimStart{}, context);
         for (size_t i = 0; i < for_cycles; ++i) {
@@ -143,13 +64,21 @@ namespace sim {
     }
 
     template<typename ... Entities>
-    Simulation<Entities...>::EntityAccessor::EntityAccessor(entity_storage_t& storage): storage_(storage) {
+    template<typename E, typename ... Args> requires OneOf<E, Entities...>
+    auto Simulation<Entities...>::spawn(Args&&... args) {
+        return std::get<std::vector<E> >(entities_).emplace_back(std::forward<Args>(args)...);
     }
 
-    template<typename ... Entities>
-    template<typename T> requires OneOf<T, Entities...>
-    std::vector<T> Simulation<Entities...>::EntityAccessor::get_all() {
-        return storage_.template get_all<T>();
+    template<typename... Entities>
+    template<typename Event>
+    void Simulation<Entities...>::EntityStorage::dispatch_to_all(const Event& event,
+                                                                 typename Simulation<Entities...>::SimulationContext&
+                                                                 context) {
+        (std::ranges::for_each(std::get<std::vector<Entities> >(entities_),
+                               [&](auto&& e) { e.dispatch(event, context); }), ...);
+        // std::apply([&event, this](auto&&... entity_vect) {
+        //     (std::ranges::for_each(entity_vect, [&](auto&& e) { e.dispatch(event, *this); }), ...);
+        // }, entities_);
     }
 }
 

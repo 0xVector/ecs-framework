@@ -5,56 +5,50 @@
 #include "Simulation.h"
 
 namespace sim {
-    template<typename E, typename... Components>
-    struct Entity {
-        using simulation_t = Simulation<Components...>;
+    // TODO: is empty concept on Tag
+    template<typename Tag, typename... Components>
+    class Entity {
+        std::tuple<std::vector<Components>...> components_;
+        size_t size_ = 0;
 
-        std::tuple<Components...> components;
+    public:
+        using id_t = size_t;
+        Entity() = default;
 
         template<typename... Args>
-        explicit Entity(Args&&... args);
+        id_t spawn(Args&&... args);
 
-        // template<typename Event, typename... Entities>
-        // void dispatch(const Event& event, simulation_t& simulation);
 
         template<typename Event>
         void dispatch(const Event& event, Context& context);
 
-        template<typename Component>
-        requires OneOf<Component, Components...>
-        Component get_component();
-
     private:
-        // template<typename Component, typename Event, typename... Entities>
-        // static void try_dispatch(Component& component, const Event& event, simulation_t& simulation);
-
         template<typename Component, typename Event>
         void try_dispatch(Component& component, const Event& event, Context& context);
     };
 
     // Implementation ============================================================================
 
-    template<typename E, typename... Components>
+    template<typename Tag, typename... Components>
     template<typename... Args>
-    Entity<E, Components...>::Entity(Args&&... args):
-        components(std::forward<Args>(args)...) {
+    typename Entity<Tag, Components...>::id_t Entity<Tag, Components...>::spawn(Args&&... args) {
+        std::get<std::vector<Components> >(components_).emplace_back(std::forward<Args>(args)...);
+        return size_++;
     }
 
-    template<typename E, typename ... Components>
+    template<typename Tag, typename ... Components>
     template<typename Event>
-    void Entity<E, Components...>::dispatch(const Event& event, Context& context) {
-        (try_dispatch(std::get<Components>(components), event, context), ...);
+    void Entity<Tag, Components...>::dispatch(const Event& event, Context& context) {
+        std::apply([&](std::vector<Components>&... components) {
+            (std::ranges::for_each(components, [&](auto& component) {
+                try_dispatch(component, event, context);
+            }), ...);
+        }, components_);
     }
 
-    template<typename E, typename... Components>
-    template<typename Component> requires OneOf<Component, Components...>
-    Component Entity<E, Components...>::get_component() {
-        return std::get<Component>(components);
-    }
-
-    template<typename E, typename ... Components>
+    template<typename Tag, typename ... Components>
     template<typename Component, typename Event>
-    void Entity<E, Components...>::try_dispatch(Component& component, const Event& event, Context& context) {
+    void Entity<Tag, Components...>::try_dispatch(Component& component, const Event& event, Context& context) {
         if constexpr (requires {component(*this, event, context);}) {
             component(*this, event, context);
         }

@@ -6,8 +6,6 @@
 
 using namespace sim;
 
-struct TestEntity;
-
 struct TestComponent {
     int a;
 
@@ -16,10 +14,11 @@ struct TestComponent {
     }
 
     template<typename E>
-    void operator()(E& e, const event::Cycle, Context& ctx) const {
+    void operator()(E& e, const event::Cycle, auto& ctx) const {
         // auto e = simulation.template get_entities_of_type<EntityB>()[0];
         // ComponentB c = e.template get_component<ComponentB>();
         std::cout << "Cycle"  " from A!" << a << std::endl;
+        auto entities = ctx.template do_get_entities<E>();
     }
 };
 
