@@ -19,12 +19,12 @@ namespace sim {
         id_t spawn(Args&&... args);
 
 
-        template<typename Event>
-        void dispatch(const Event& event, Context& context);
+        template<typename Event, typename Ctx>
+        void dispatch(const Event& event, Ctx& context);
 
     private:
-        template<typename Component, typename Event>
-        void try_dispatch(Component& component, const Event& event, Context& context);
+        template<typename Component, typename Event, typename Ctx>
+        void try_dispatch(Component& component, const Event& event, Ctx& context);
     };
 
     // Implementation ============================================================================
@@ -32,13 +32,13 @@ namespace sim {
     template<typename Tag, typename... Components>
     template<typename... Args>
     typename Entity<Tag, Components...>::id_t Entity<Tag, Components...>::spawn(Args&&... args) {
-        std::get<std::vector<Components> >(components_).emplace_back(std::forward<Args>(args)...);
+        (std::get<std::vector<Components> >(components_).emplace_back(std::forward<Args>(args)...), ...);
         return size_++;
     }
 
     template<typename Tag, typename ... Components>
-    template<typename Event>
-    void Entity<Tag, Components...>::dispatch(const Event& event, Context& context) {
+    template<typename Event, typename Ctx>
+    void Entity<Tag, Components...>::dispatch(const Event& event, Ctx& context) {
         std::apply([&](std::vector<Components>&... components) {
             (std::ranges::for_each(components, [&](auto& component) {
                 try_dispatch(component, event, context);
@@ -47,8 +47,8 @@ namespace sim {
     }
 
     template<typename Tag, typename ... Components>
-    template<typename Component, typename Event>
-    void Entity<Tag, Components...>::try_dispatch(Component& component, const Event& event, Context& context) {
+    template<typename Component, typename Event, typename Ctx>
+    void Entity<Tag, Components...>::try_dispatch(Component& component, const Event& event, Ctx& context) {
         if constexpr (requires {component(*this, event, context);}) {
             component(*this, event, context);
         }

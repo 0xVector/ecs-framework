@@ -6,6 +6,11 @@
 
 using namespace sim;
 
+struct TestComponent;
+
+struct TestEntity {};
+using TestEntity_t = Entity<TestEntity, TestComponent>;
+
 struct TestComponent {
     int a;
 
@@ -15,26 +20,15 @@ struct TestComponent {
 
     template<typename E>
     void operator()(E& e, const event::Cycle, auto& ctx) const {
-        // auto e = simulation.template get_entities_of_type<EntityB>()[0];
-        // ComponentB c = e.template get_component<ComponentB>();
         std::cout << "Cycle"  " from A!" << a << std::endl;
-        auto entities = ctx.template do_get_entities<E>();
+        auto entities = ctx.template get_entity<TestEntity_t>();
     }
 };
-
-struct TestEntity : Entity<TestEntity, TestComponent> {
-    explicit TestEntity(int a): Entity(a) {
-    }
-};
-
-class Fake {};
 
 int main() {
-    auto e = TestEntity(5);
-    // auto e2 = EntityB();
-    auto s = Simulation<TestEntity>();
-    s.entities().add(e);
-    // s.add(e2);
+    auto e = TestEntity_t();
+    auto s = Simulation<TestEntity_t>();
+    e.spawn(5);
     s.run(10);
 
     std::cout << "Done" << std::endl;
