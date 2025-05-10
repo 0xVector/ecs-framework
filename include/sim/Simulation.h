@@ -2,26 +2,26 @@
 #define SIMULATION_H
 #include <tuple>
 #include <vector>
-#include <algorithm>
 
 #include "Event.h"
 #include "Concepts.h"
+#include "Entity.h"
+#include "Traits.h"
 
 namespace sim {
     template<typename... Entities>
     class Simulation;
 
-    template<typename... Entities>
+    template<typename Sim> // TODO: concept
     class Context {
-    private:
-        using sim_t = Simulation<Entities...>;
+        using sim_t = extracted_to_t<Sim, Simulation>;
         sim_t* simulation_;
 
     public:
         explicit Context(sim_t* simulation);
 
         template<typename E>
-            requires OneOf<E, Entities...>
+        // requires OneOf<E, Entities...> // TODO
         E& get_entity();
 
         [[nodiscard]] size_t cycle() const;
@@ -50,22 +50,35 @@ namespace sim {
 
     private:
         template<typename Event>
-        void dispatch_to_all(const Event& event, Context<Entities...>& context);
+        void dispatch_to_all(const Event& event, Context<Simulation>& context);
     };
+
+    template<typename... Es>
+    class Builder {
+    public:
+        template<typename EntityType, typename... Components>
+        constexpr auto add() const { // TODO: unique Components
+            return Builder<Es..., Entity<EntityType, Components...> >();
+        }
+
+        constexpr Simulation<Es...> build() { return Simulation<Es...>(); }
+    };
+
+    constexpr Builder<> make_simulation() { return {}; }
 
     // Implementation ============================================================================
 
-    template<typename... Entities>
-    Context<Entities...>::Context(sim_t* simulation): simulation_(simulation) {}
+    template<typename Sim>
+    Context<Sim>::Context(sim_t* simulation): simulation_(simulation) {}
 
-    template<typename... Entities>
-    template<typename E> requires OneOf<E, Entities...>
-    E& Context<Entities...>::get_entity() {
+    template<typename Sim>
+    template<typename E>
+    E& Context<Sim>::get_entity() {
         return simulation_->template get_entity<E>();
     }
 
-    template<typename... Entities>
-    size_t Context<Entities...>::cycle() const {
+    template<typename Sim>
+    size_t Context<Sim>::cycle() const {
         return simulation_->cycle();
     }
 
@@ -79,7 +92,7 @@ namespace sim {
 
     template<typename... Entities>
     void Simulation<Entities...>::run(const size_t for_cycles) {
-        Context<Entities...> context(this);
+        Context<Simulation> context(this);
 
         dispatch_to_all(event::SimStart{}, context);
         for (size_t i = 0; i < for_cycles; ++i) {
@@ -92,7 +105,7 @@ namespace sim {
     template<typename... Entities>
     template<typename E, typename... Args> requires OneOf<E, Entities...>
     auto Simulation<Entities...>::spawn(Args&&... args) {
-        return std::get<std::vector<E> >(entities_).emplace_back(std::forward<Args>(args)...);
+        return std::get<E>(entities_).spawn(std::forward<Args>(args)...);
     }
 
     template<typename... Entities>
@@ -103,7 +116,7 @@ namespace sim {
 
     template<typename... Entities>
     template<typename Event>
-    void Simulation<Entities...>::dispatch_to_all(const Event& event, Context<Entities...>& context) {
+    void Simulation<Entities...>::dispatch_to_all(const Event& event, Context<Simulation>& context) {
         (std::get<Entities>(entities_).dispatch(event, context), ...);
     }
 }

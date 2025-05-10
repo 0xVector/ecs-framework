@@ -19,10 +19,10 @@ struct ComponentB {
     }
 };
 
-struct TestComponent {
+struct TestComponentA {
     int a;
 
-    explicit TestComponent(const int val):
+    explicit TestComponentA(const int val):
         a(val) {
     }
 
@@ -34,7 +34,7 @@ struct TestComponent {
     }
 };
 
-struct TestEntity : Entity<TestEntity, TestComponent> {
+struct TestEntity : Entity<TestEntity, TestComponentA> {
     explicit TestEntity(int a): Entity(a) {
     }
 };

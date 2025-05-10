@@ -1,8 +1,8 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 #include <tuple>
-
-#include "Simulation.h"
+#include <algorithm>
+#include <vector>
 
 namespace sim {
     // TODO: is empty concept on Tag
