@@ -6,15 +6,23 @@
 
 using namespace sim;
 
+struct TestComponentB;
+
 struct TestComponentA {
     int a;
 
     explicit TestComponentA(const int val): a(val) {}
 
-    template<typename E, typename S>
-    void operator()(E& e, const event::Cycle, Context<S>& ctx) const {
-        ctx.template get_entity<E>();
-        std::cout << "Cycle" " from A! " << a << std::endl;
+    void operator()(const event::Cycle) const {
+        std::cout << "Simple cycle A (" << a << ")" << std::endl;
+    }
+
+    template<typename... Cs>
+    void operator()(const event::Cycle, Context<Cs...>& ctx) const {
+        ctx.template view<TestComponentA, TestComponentB>().for_each([this](const TestComponentA& a, const TestComponentB& b) {
+            std::cout << "Complex cycle A (" << a.a << ", " << ")" << std::endl;
+        });
+        std::cout << "Simple cycle A (" << a << ")" << std::endl;
     }
 };
 
@@ -23,10 +31,8 @@ struct TestComponentB {
 
     explicit TestComponentB(const int val): a(val) {}
 
-    template<typename E, typename S>
-    void operator()(E& e, const event::Cycle, Context<S>& ctx) const {
-        ctx.template get_entity<E>();
-        std::cout << "Cycle" " from B! " << a << std::endl;
+    void operator()(const event::Cycle) const {
+        std::cout << "Simple cycle B (" << a << ")" << std::endl;
     }
 };
 
@@ -35,14 +41,15 @@ struct TestEntity {};
 using TestEntity_t = Entity<TestEntity, TestComponentA>;
 
 int main() {
-    auto s = make_simulation()
-            .add<TestEntity, TestComponentA>()
-            .add<TestEntity, TestComponentA, TestComponentB>()
-            .build();
+    Simulation<TestComponentA, TestComponentB> s;
+    auto e1 = s.create();
+    auto e2 = s.create();
 
-    s.spawn<TestEntity_t>(1);
-    s.spawn<Entity<TestEntity, TestComponentA, TestComponentB> >(555, 666);
-    s.spawn<TestEntity_t>(2);
+    e1.emplace<TestComponentA>(5);
+
+    e2.emplace<TestComponentA>(1);
+    e2.emplace<TestComponentB>(2);
+
     s.run(10);
 
     std::cout << "Done" << std::endl;
