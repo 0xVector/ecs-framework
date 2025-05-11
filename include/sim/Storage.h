@@ -1,15 +1,27 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 #include <vector>
+#include <memory>
 
 namespace sim {
     using index_t = uint16_t;
+    using component_id_t = size_t;
 
-    template<typename... Cs>
-    class EntityHandle;
+    inline component_id_t generate_component_id() {
+        static component_id_t id = 0;
+        return id++;
+    }
+
+    template<typename C>
+    component_id_t get_component_id() {
+        static component_id_t id = generate_component_id();
+        return id;
+    }
+
+    class StorageBase {};
 
     template<typename T>
-    class Storage {
+    class Storage final : public StorageBase {
         std::vector<index_t> mapping_;
         std::vector<T> storage_;
 
@@ -22,37 +34,29 @@ namespace sim {
         void for_each(auto&& func);
     };
 
-    template<typename... Cs>
+    class EntityHandle;
+
     class Registry {
-        using handle_t = EntityHandle<Cs...>;
-        std::tuple<Storage<Cs>...> storages_;
+        std::vector<std::unique_ptr<StorageBase> > storages_;
 
     public:
-        template<typename Component, typename... Args>
-            requires OneOf<Component, Cs...>
-        void emplace(handle_t entity, Args&&... args);
-
         template<typename Component>
-            requires OneOf<Component, Cs...>
-        [[nodiscard]] Storage<Component>& get_storage();
+        Storage<Component>& get();
 
-        template<typename Event>
-        void dispatch(const Event& event);
+        template<typename Component, typename... Args>
+        void emplace(EntityHandle entity, Args&&... args);
     };
 
-    template<typename... Cs>
     class EntityHandle {
-        using storage_t = Registry<Cs...>;
         index_t index_;
-        storage_t* storage_;
+        Registry* registry_;
 
     public:
-        EntityHandle(index_t index, storage_t* storage);
+        EntityHandle(index_t index, Registry* registry);
 
         [[nodiscard]] index_t index() const;
 
         template<typename Component, typename... Args>
-            requires OneOf<Component, Cs...>
         void emplace(Args&&... args);
     };
 
@@ -64,18 +68,6 @@ namespace sim {
     public:
         View(Storage<A>* storage_a, Storage<B>* storage_b);
         void for_each(auto&& func);
-    };
-
-    template<typename... Cs>
-    class Context {
-        using registry_t = Registry<Cs...>;
-        registry_t* registry_;
-
-    public:
-        explicit Context(registry_t* registry);
-
-        template<typename A, typename B>
-        [[nodiscard]] View<A, B> view();
     };
 
     // Implementation ============================================================================
@@ -101,54 +93,32 @@ namespace sim {
             func(it);
     }
 
-    template<typename... Cs>
+    template<typename Component>
+    Storage<Component>& Registry::get() {
+        auto id = get_component_id<Component>();
+        if (id >= storages_.size()) {
+            storages_.resize(id + 1);
+            storages_[id] = std::make_unique<Storage<Component> >();
+        }
+        return static_cast<Storage<Component> &>(*storages_[id]);
+    }
+
     template<typename Component, typename... Args>
-        requires OneOf<Component, Cs...>
-    void Registry<Cs...>::emplace(handle_t entity, Args&&... args) {
-        auto& storage = std::get<Storage<Component> >(storages_);
+    void Registry::emplace(const EntityHandle entity, Args&&... args) {
+        auto& storage = get<Component>();
         storage.emplace(entity.index(), std::forward<Args>(args)...);
     }
 
-    template<typename ... Cs>
-    template<typename Component> requires OneOf<Component, Cs...>
-    Storage<Component>& Registry<Cs...>::get_storage() {
-        return std::get<Storage<Component> >(storages_);
+    inline EntityHandle::EntityHandle(const index_t index, Registry* registry): index_(index), registry_(registry) {
     }
 
-    template<typename... Cs>
-    template<typename Event>
-    void Registry<Cs...>::dispatch(const Event& event) {
-        Context<Cs...> context(this);
-
-        std::apply([&](Storage<Cs>&... storage) {
-            (storage.for_each([&](auto&& component) {
-                // if constexpr (requires { component(*this, event, context); }) {
-                //     component(*this, event, context);
-                // }
-                // if constexpr (requires { component(*this, event); }) {
-                //     component(*this, event);
-                // }
-                if constexpr (requires { component(event, context); }) {
-                    component(event, context);
-                }
-                if constexpr (requires { component(event); }) {
-                    component(event);
-                }
-            }), ...);
-        }, storages_);
+    inline index_t EntityHandle::index() const {
+        return index_;
     }
 
-    template<typename... Cs>
-    EntityHandle<Cs...>::EntityHandle(const index_t index, storage_t* storage): index_(index), storage_(storage) {}
-
-    template<typename... Cs>
-    index_t EntityHandle<Cs...>::index() const { return index_; }
-
-    template<typename... Cs>
     template<typename Component, typename... Args>
-        requires OneOf<Component, Cs...>
-    void EntityHandle<Cs...>::emplace(Args&&... args) {
-        storage_->template emplace<Component>(*this, std::forward<Args>(args)...);
+    void EntityHandle::emplace(Args&&... args) {
+        registry_->emplace<Component>(*this, std::forward<Args>(args)...);
     }
 
     template<typename A, typename B>
@@ -161,15 +131,6 @@ namespace sim {
                 func(a, b);
             });
         });
-    }
-
-    template<typename ... Cs>
-    Context<Cs...>::Context(registry_t* registry): registry_(registry) {}
-
-    template<typename ... Cs>
-    template<typename A, typename B>
-    View<A, B> Context<Cs...>::view() {
-        return {&registry_->template get_storage<A>(), &registry_->template get_storage<B>()};
     }
 }
 

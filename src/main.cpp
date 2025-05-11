@@ -17,9 +17,8 @@ struct TestComponentA {
         std::cout << "Simple cycle A (" << a << ")" << std::endl;
     }
 
-    template<typename... Cs>
-    void operator()(const event::Cycle, Context<Cs...>& ctx) const {
-        ctx.template view<TestComponentA, TestComponentB>().for_each([this](const TestComponentA& a, const TestComponentB& b) {
+    void operator()(const event::Cycle, Context& ctx) const {
+        ctx.view<TestComponentA, TestComponentB>().for_each([this](const TestComponentA& a, const TestComponentB& b) {
             std::cout << "Complex cycle A (" << a.a << ", " << ")" << std::endl;
         });
         std::cout << "Simple cycle A (" << a << ")" << std::endl;
