@@ -40,7 +40,9 @@ struct TestEntity {};
 using TestEntity_t = Entity<TestEntity, TestComponentA>;
 
 int main() {
-    Simulation<TestComponentA, TestComponentB> s;
+    auto s = Simulation<ComponentsPack<>, Systems<>>()
+        .with_components<TestComponentA, TestComponentB>()
+        .with_systems<>();
     auto e1 = s.create();
     auto e2 = s.create();
 

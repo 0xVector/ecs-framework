@@ -18,6 +18,9 @@ namespace sim {
         return id;
     }
 
+    template<typename... Cs>
+    class ComponentsPack {};
+
     class StorageBase {};
 
     template<typename T>
