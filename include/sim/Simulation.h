@@ -14,7 +14,7 @@ namespace sim {
         Registry registry_;
         Dispatcher<Ss...> dispatcher_{};
         size_t cycle_ = 0;
-        index_t entity_index_ = 0;
+        id_t entity_id_ = 0;
 
     public:
         template<typename... C>
@@ -62,7 +62,7 @@ namespace sim {
 
     template<typename... Cs, typename... Ss>
     EntityHandle Simulation<Components<Cs...>, Systems<Ss...> >::create() {
-        return {entity_index_++, &registry_};
+        return {entity_id_++, &registry_};
     }
 
     template<typename... Cs, typename... Ss>
