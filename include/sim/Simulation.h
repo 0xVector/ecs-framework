@@ -9,10 +9,8 @@ namespace sim {
     template<typename Components, typename Systems>
     class Simulation;
 
-    // todo: concept is entity
-    template< //template<typename...> class Components, template<typename...> class Systems,
-        typename... Cs, typename... Ss>
-    class Simulation<ComponentsPack<Cs...>, SystemsPack<Ss...> > final {
+    template<typename... Cs, typename... Ss>
+    class Simulation<Components<Cs...>, Systems<Ss...> > final {
         Registry registry_;
         Dispatcher<Ss...> dispatcher_{};
         size_t cycle_ = 0;
@@ -21,12 +19,12 @@ namespace sim {
     public:
         template<typename... C>
         constexpr auto with_components() const {
-            return Simulation<ComponentsPack<Cs..., C...>, SystemsPack<Ss...> >{};
+            return Simulation<Components<Cs..., C...>, Systems<Ss...> >{};
         }
 
         template<typename... S>
         constexpr auto with_systems() const {
-            return Simulation<ComponentsPack<Cs...>, SystemsPack<Ss..., S...> >{};
+            return Simulation<Components<Cs...>, Systems<Ss..., S...> >{};
         }
 
         [[nodiscard]] size_t cycle() const;
@@ -41,18 +39,18 @@ namespace sim {
     };
 
     constexpr auto make_simulation() {
-        return Simulation<ComponentsPack<>, SystemsPack<> >();
+        return Simulation<Components<>, Systems<> >();
     }
 
     // Implementation ============================================================================
 
     template<typename... Cs, typename... Ss>
-    size_t Simulation<ComponentsPack<Cs...>, SystemsPack<Ss...> >::cycle() const {
+    size_t Simulation<Components<Cs...>, Systems<Ss...> >::cycle() const {
         return cycle_;
     }
 
     template<typename... Cs, typename... Ss>
-    void Simulation<ComponentsPack<Cs...>, SystemsPack<Ss...> >::run(const size_t for_cycles) {
+    void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t for_cycles) {
         Context ctx(&registry_);
         dispatch_to_all(event::SimStart{}, ctx);
         for (size_t i = 0; i < for_cycles; ++i) {
@@ -63,13 +61,13 @@ namespace sim {
     }
 
     template<typename... Cs, typename... Ss>
-    EntityHandle Simulation<ComponentsPack<Cs...>, SystemsPack<Ss...> >::create() {
+    EntityHandle Simulation<Components<Cs...>, Systems<Ss...> >::create() {
         return {entity_index_++, &registry_};
     }
 
     template<typename... Cs, typename... Ss>
     template<typename Event>
-    void Simulation<ComponentsPack<Cs...>, SystemsPack<Ss...> >::dispatch_to_all(const Event& event, Context& ctx) {
+    void Simulation<Components<Cs...>, Systems<Ss...> >::dispatch_to_all(const Event& event, Context& ctx) {
         dispatcher_.template dispatch_to_all<Event>(event, ctx);
     }
 }

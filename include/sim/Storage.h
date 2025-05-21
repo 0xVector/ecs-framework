@@ -19,7 +19,7 @@ namespace sim {
     }
 
     template<typename... Cs>
-    class ComponentsPack {};
+    class Components {};
 
     class StorageBase {};
 
@@ -43,8 +43,8 @@ namespace sim {
         std::vector<std::unique_ptr<StorageBase> > storages_;
 
     public:
-        template<typename Component>
-        Storage<Component>& get();
+        template<typename C>
+        Storage<C>& get();
 
         template<typename Component, typename... Args>
         void emplace(EntityHandle entity, Args&&... args);

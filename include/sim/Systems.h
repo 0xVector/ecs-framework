@@ -3,22 +3,22 @@
 #include "View.h"
 
 namespace sim {
-    template<typename... Sys>
-    class SystemsPack {};
+    template<typename... Ss>
+    class Systems {};
 
-    template<typename... Systems>
+    template<typename... Ss>
     class Dispatcher {
-        std::tuple<Systems...> systems_;
+        std::tuple<Ss...> systems_;
 
     public:
         template<typename Event>
         void dispatch_to_all(const Event& event, Context& context);
     };
 
-    template<typename... Systems>
+    template<typename... Ss>
     template<typename Event>
-    void Dispatcher<Systems...>::dispatch_to_all(const Event& event, Context& context) {
-        std::apply([&](Systems&... system) {
+    void Dispatcher<Ss...>::dispatch_to_all(const Event& event, Context& context) {
+        std::apply([&](Ss&... system) {
             ([&]() {
                 // if constexpr (requires { component(*this, event, context); }) {
                 //     component(*this, event, context);

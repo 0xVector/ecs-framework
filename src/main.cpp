@@ -29,14 +29,14 @@ struct TestSystemB {
 
     void operator()(const event::Cycle, Context& ctx) const {
         ctx.view<TestComponentA, TestComponentB>().for_each(
-            [this](const TestComponentA& a, const TestComponentB& b) {
+            [](const TestComponentA& a, const TestComponentB& b) {
                 std::cout << "Complex cycle B (" << a.a << ", " << b.b << ")" << std::endl;
             });
     }
 };
 
 int main() {
-    auto s = Simulation<ComponentsPack<>, SystemsPack<> >()
+    auto s = Simulation<Components<>, Systems<> >()
             .with_components<TestComponentA, TestComponentB>()
             .with_systems<TestSystemA, TestSystemB>();
     auto e1 = s.create();
