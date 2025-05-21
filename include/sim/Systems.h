@@ -1,11 +1,10 @@
 #ifndef SYSTEMS_H
 #define SYSTEMS_H
 #include "View.h"
-#include "Storage.h"
 
 namespace sim {
     template<typename... Sys>
-    class Systems {};
+    class SystemsPack {};
 
     template<typename... Systems>
     class Dispatcher {
@@ -13,26 +12,28 @@ namespace sim {
 
     public:
         template<typename Event>
-        void dispatch_to_all(const Event& event, Context& context, Registry& registry_);
+        void dispatch_to_all(const Event& event, Context& context);
     };
 
     template<typename... Systems>
     template<typename Event>
-    void Dispatcher<Systems...>::dispatch_to_all(const Event& event, Context& context, Registry& registry) {
-        (registry.get<Cs>().for_each([&](auto&& component) {
-            // if constexpr (requires { component(*this, event, context); }) {
-            //     component(*this, event, context);
-            // }
-            // if constexpr (requires { component(*this, event); }) {
-            //     component(*this, event);
-            // }
-            if constexpr (requires { component(event, context); }) {
-                component(event, context);
-            }
-            if constexpr (requires { component(event); }) {
-                component(event);
-            }
-        }), ...);
+    void Dispatcher<Systems...>::dispatch_to_all(const Event& event, Context& context) {
+        std::apply([&](Systems&... system) {
+            ([&]() {
+                // if constexpr (requires { component(*this, event, context); }) {
+                //     component(*this, event, context);
+                // }
+                // if constexpr (requires { component(*this, event); }) {
+                //     component(*this, event);
+                // }
+                if constexpr (requires { system(event, context); }) {
+                    system(event, context);
+                }
+                if constexpr (requires { system(event); }) {
+                    system(event);
+                }
+            }(), ...);
+        }, systems_);
     }
 }
 #endif //SYSTEMS_H

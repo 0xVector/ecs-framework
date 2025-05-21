@@ -63,16 +63,6 @@ namespace sim {
         void emplace(Args&&... args);
     };
 
-    template<typename A, typename B>
-    class View {
-        Storage<A>* storage_a_;
-        Storage<B>* storage_b_;
-
-    public:
-        View(Storage<A>* storage_a, Storage<B>* storage_b);
-        void for_each(auto&& func);
-    };
-
     // Implementation ============================================================================
 
     template<typename T>
@@ -112,8 +102,7 @@ namespace sim {
         storage.emplace(entity.index(), std::forward<Args>(args)...);
     }
 
-    inline EntityHandle::EntityHandle(const index_t index, Registry* registry): index_(index), registry_(registry) {
-    }
+    inline EntityHandle::EntityHandle(const index_t index, Registry* registry): index_(index), registry_(registry) {}
 
     inline index_t EntityHandle::index() const {
         return index_;
@@ -122,18 +111,6 @@ namespace sim {
     template<typename Component, typename... Args>
     void EntityHandle::emplace(Args&&... args) {
         registry_->emplace<Component>(*this, std::forward<Args>(args)...);
-    }
-
-    template<typename A, typename B>
-    View<A, B>::View(Storage<A>* storage_a, Storage<B>* storage_b): storage_a_(storage_a), storage_b_(storage_b) {}
-
-    template<typename A, typename B>
-    void View<A, B>::for_each(auto&& func) {
-        storage_a_->for_each([&](auto&& a) {
-            storage_b_->for_each([&](auto&& b) {
-                func(a, b);
-            });
-        });
     }
 }
 

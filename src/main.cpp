@@ -1,48 +1,44 @@
 #include <iostream>
 
-#include "sim/Entity.h"
-#include "sim/Event.h"
 #include "sim/Simulation.h"
 
 using namespace sim;
 
-struct TestComponentB;
-
 struct TestComponentA {
     int a;
-
-    explicit TestComponentA(const int val): a(val) {}
-
-    void operator()(const event::Cycle) const {
-        std::cout << "Simple cycle A (" << a << ")" << std::endl;
-    }
-
-    void operator()(const event::Cycle, Context& ctx) const {
-        ctx.view<TestComponentA, TestComponentB>().for_each([this](const TestComponentA& a, const TestComponentB& b) {
-            std::cout << "Complex cycle A (" << a.a << ", " << ")" << std::endl;
-        });
-        std::cout << "Simple cycle A (" << a << ")" << std::endl;
-    }
 };
 
 struct TestComponentB {
-    int a;
+    int b;
+};
 
-    explicit TestComponentB(const int val): a(val) {}
+struct TestSystemA {
+    void operator()(const event::SimStart) const {
+        std::cout << "Simple start A" << std::endl;
+    }
 
     void operator()(const event::Cycle) const {
-        std::cout << "Simple cycle B (" << a << ")" << std::endl;
+        std::cout << "Simple cycle A" << std::endl;
     }
 };
 
-struct TestEntity {};
+struct TestSystemB {
+    void operator()(const event::Cycle) const {
+        std::cout << "Simple cycle B" << std::endl;
+    }
 
-using TestEntity_t = Entity<TestEntity, TestComponentA>;
+    void operator()(const event::Cycle, Context& ctx) const {
+        ctx.view<TestComponentA, TestComponentB>().for_each(
+            [this](const TestComponentA& a, const TestComponentB& b) {
+                std::cout << "Complex cycle B (" << a.a << ", " << b.b << ")" << std::endl;
+            });
+    }
+};
 
 int main() {
-    auto s = Simulation<ComponentsPack<>, Systems<>>()
-        .with_components<TestComponentA, TestComponentB>()
-        .with_systems<>();
+    auto s = Simulation<ComponentsPack<>, SystemsPack<> >()
+            .with_components<TestComponentA, TestComponentB>()
+            .with_systems<TestSystemA, TestSystemB>();
     auto e1 = s.create();
     auto e2 = s.create();
 
