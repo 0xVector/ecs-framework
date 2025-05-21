@@ -12,3 +12,14 @@ target_include_directories(SimFramework INTERFACE include)
 
 add_subdirectory(src)
 add_subdirectory(examples)
+
+# Raylib
+include(FetchContent)
+
+FetchContent_Declare(
+        raylib
+        GIT_REPOSITORY https://github.com/raysan5/raylib.git
+        GIT_TAG        5.5
+)
+
+FetchContent_MakeAvailable(raylib)
