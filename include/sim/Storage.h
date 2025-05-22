@@ -11,16 +11,14 @@ namespace sim {
     template<typename... Cs>
     class Components {};
 
-    inline component_id_t generate_component_id() {
-        static component_id_t id = 0;
-        return id++;
-    }
-
-    template<typename C>
-    component_id_t get_component_id() {
-        static component_id_t id = generate_component_id();
+    template<typename T>
+    inline const component_id_t component_id = [] {
+        static const component_id_t id = [] {
+            static component_id_t current = 0;
+            return current++;
+        }();
         return id;
-    }
+    }();
 
     class StorageBase {};
 
@@ -57,13 +55,13 @@ namespace sim {
     };
 
     class EntityHandle {
-        id_t index_;
+        id_t id_;
         Registry* registry_;
 
     public:
         EntityHandle(id_t index, Registry* registry);
 
-        [[nodiscard]] id_t index() const;
+        [[nodiscard]] id_t id() const;
 
         template<typename Component, typename... Args>
         void emplace(Args&&... args);
@@ -92,7 +90,7 @@ namespace sim {
         id_to_index_[id] = index;
 
         if (index >= index_to_id_.size())
-            index_to_id_.resize(id + 1);
+            index_to_id_.resize(index + 1);
         index_to_id_[index] = id;
     }
 
@@ -119,7 +117,8 @@ namespace sim {
 
     template<typename Component>
     Storage<Component>& Registry::get() {
-        auto id = get_component_id<Component>();
+        // auto id = get_component_id<Component>();
+        auto id = component_id<Component>;
         if (id >= storages_.size()) {
             storages_.resize(id + 1);
             storages_[id] = std::make_unique<Storage<Component> >();
@@ -129,14 +128,14 @@ namespace sim {
 
     template<typename Component, typename... Args>
     void Registry::emplace(const EntityHandle entity, Args&&... args) {
-        auto& storage = get<Component>();
-        storage.emplace(entity.index(), std::forward<Args>(args)...);
+        Storage<Component>& storage = get<Component>();
+        storage.emplace(entity.id(), std::forward<Args>(args)...);
     }
 
-    inline EntityHandle::EntityHandle(const id_t index, Registry* registry): index_(index), registry_(registry) {}
+    inline EntityHandle::EntityHandle(const id_t index, Registry* registry): id_(index), registry_(registry) {}
 
-    inline id_t EntityHandle::index() const {
-        return index_;
+    inline id_t EntityHandle::id() const {
+        return id_;
     }
 
     template<typename Component, typename... Args>
