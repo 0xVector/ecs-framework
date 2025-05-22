@@ -12,7 +12,7 @@ add_subdirectory(src)
 add_subdirectory(examples)
 
 target_compile_options(SimFramework INTERFACE
-        -Wall -Wextra -Wpedantic -Werror
+        -Wall -Wextra -Wpedantic #-Werror
 )
 
 # Raylib

@@ -11,14 +11,16 @@ namespace sim {
     template<typename... Cs>
     class Components {};
 
-    template<typename T>
-    inline const component_id_t component_id = [] {
-        static const component_id_t id = [] {
-            static component_id_t current = 0;
-            return current++;
-        }();
+    inline component_id_t generate_component_id() {
+        static component_id_t id = 0;
+        return id++;
+    }
+
+    template<typename C>
+    component_id_t get_component_id() {
+        static component_id_t id = generate_component_id();
         return id;
-    }();
+    }
 
     class StorageBase {};
 
@@ -117,8 +119,7 @@ namespace sim {
 
     template<typename Component>
     Storage<Component>& Registry::get() {
-        // auto id = get_component_id<Component>();
-        auto id = component_id<Component>;
+        auto id = get_component_id<Component>();
         if (id >= storages_.size()) {
             storages_.resize(id + 1);
             storages_[id] = std::make_unique<Storage<Component> >();

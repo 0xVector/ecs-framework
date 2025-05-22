@@ -3,14 +3,17 @@
 #include "Storage.h"
 
 namespace sim {
-    template<typename A, typename B>
+    template<typename... Components>
     class View {
-        Storage<A>* storage_a_;
-        Storage<B>* storage_b_;
+        std::tuple<Storage<Components>*...> storages_;
 
     public:
-        View(Storage<A>* storage_a, Storage<B>* storage_b);
+        explicit View(Storage<Components>*... storages);
         void for_each(auto&& func);
+
+    private:
+        template<std::size_t I = 0, typename ... Cs>
+        void for_each_nested(auto&& func, Cs&... components);
     };
 
     class Context {
@@ -19,29 +22,43 @@ namespace sim {
     public:
         explicit Context(Registry* registry);
 
-        template<typename A, typename B>
-        [[nodiscard]] View<A, B> view();
+        template<typename... Components>
+        [[nodiscard]] View<Components...> view();
     };
 
     // Implementation ============================================================================
 
-    inline Context::Context(Registry* registry): registry_(registry) {}
+    template<typename... Components>
+    View<Components...>::View(Storage<Components>*... storages): storages_(storages...) {}
 
-    template<typename A, typename B>
-    View<A, B> Context::view() {
-        return {&registry_->get<A>(), &registry_->get<B>()};
+    template<typename... Components>
+    void View<Components...>::for_each(auto&& func) {
+        for_each_nested(std::forward<decltype(func)>(func));
+
+        // storage_a_->for_each([&](auto&& a) {
+        //     storage_b_->for_each([&](auto&& b) {
+        //         func(a, b);
+        //     });
+        // });
     }
 
-    template<typename A, typename B>
-    View<A, B>::View(Storage<A>* storage_a, Storage<B>* storage_b): storage_a_(storage_a), storage_b_(storage_b) {}
-
-    template<typename A, typename B>
-    void View<A, B>::for_each(auto&& func) {
-        storage_a_->for_each([&](auto&& a) {
-            storage_b_->for_each([&](auto&& b) {
-                func(a, b);
+    template<typename ... Components>
+    template<std::size_t I, typename ... Cs>
+    void View<Components...>::for_each_nested(auto&& func, Cs&... components) {
+        if constexpr (I < sizeof...(Components)) {
+            std::get<I>(storages_)->for_each([&](auto& component) {
+                for_each_nested<I + 1>(func, components..., component);
             });
-        });
+        } else {
+            func(components...);
+        }
+    }
+
+    inline Context::Context(Registry* registry): registry_(registry) {}
+
+    template<typename ... Components>
+    View<Components...> Context::view() {
+        return View<Components...>(&registry_->get<Components>()...);
     }
 }
 #endif //VIEW_H

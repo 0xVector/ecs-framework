@@ -75,3 +75,11 @@ Simulation consists of discrete Cycles representing the smallest steps of time.
 ### Cycle
 
 A step of the simulation when all Entities and Elements are processed by firing Events.
+
+
+# Todo
+
+- foreach views
+- renderer separate?
+- raylib global namespace problems
+- way to make an entity type (set of components) easily
