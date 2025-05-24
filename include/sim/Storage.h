@@ -7,21 +7,6 @@
 namespace sim {
     using id_t = uint16_t;
     using index_t = uint16_t;
-    using component_id_t = size_t;
-
-    template<typename... Cs>
-    class Components {};
-
-    inline component_id_t generate_component_id() {
-        static component_id_t id = 0;
-        return id++;
-    }
-
-    template<typename C>
-    component_id_t get_component_id() {
-        static component_id_t id = generate_component_id();
-        return id;
-    }
 
     class StorageBase {};
 
@@ -53,51 +38,6 @@ namespace sim {
 
     private:
         void ensure_mappings(id_t entity_id, index_t index);
-    };
-
-    class EntityHandle;
-
-    // Forward declaration (TODO)
-    template<typename... Components>
-    class View;
-
-    class Registry {
-        std::vector<std::unique_ptr<StorageBase> > storages_;
-
-    public:
-        template<typename C>
-        [[nodiscard]] Storage<C>& get_storage();
-
-        template<typename Component>
-        void push_back(EntityHandle entity, Component&& component);
-
-        template<typename Component, typename... Args>
-        void emplace(EntityHandle entity, Args&&... args);
-
-        template<typename... Components>
-        [[nodiscard]] View<Components...> view();
-    };
-
-    class EntityHandle {
-        id_t id_;
-        Registry* registry_;
-
-    public:
-        EntityHandle(id_t id, Registry* registry);
-
-        [[nodiscard]] id_t id() const;
-
-        template<typename Component>
-        [[nodiscard]] bool has() const;
-
-        template<typename Component>
-        [[nodiscard]] Component& get() const;
-
-        template<typename Component>
-        void push_back(Component&& component);
-
-        template<typename Component, typename... Args>
-        void emplace(Args&&... args);
     };
 
     // Implementation ============================================================================
@@ -172,59 +112,6 @@ namespace sim {
         if (index >= index_to_id_.size())
             index_to_id_.resize(index + 1, NO_ID);
         index_to_id_[index] = entity_id;
-    }
-
-    template<typename Component>
-    Storage<Component>& Registry::get_storage() {
-        auto id = get_component_id<Component>();
-        if (id >= storages_.size()) {
-            storages_.resize(id + 1);
-            storages_[id] = std::make_unique<Storage<Component> >();
-        }
-        return static_cast<Storage<Component> &>(*storages_[id]);
-    }
-
-    template<typename Component>
-    void Registry::push_back(const EntityHandle entity, Component&& component) {
-        auto& storage = get_storage<std::decay_t<Component>>();
-        storage.push_back(entity.id(), std::forward<Component>(component));
-    }
-
-    template<typename Component, typename... Args>
-    void Registry::emplace(const EntityHandle entity, Args&&... args) {
-        auto& storage = get_storage<Component>();
-        storage.emplace(entity.id(), std::forward<Args>(args)...);
-    }
-
-    template<typename... Components>
-    View<Components...> Registry::view() {
-        return View<Components...>(this);
-    }
-
-    inline EntityHandle::EntityHandle(const id_t id, Registry* registry): id_(id), registry_(registry) {}
-
-    inline id_t EntityHandle::id() const {
-        return id_;
-    }
-
-    template<typename Component>
-    bool EntityHandle::has() const {
-        return registry_->get_storage<Component>().entity_has(id_);
-    }
-
-    template<typename Component>
-    Component& EntityHandle::get() const {
-        return registry_->get_storage<Component>().entity_get(id_);
-    }
-
-    template<typename Component>
-    void EntityHandle::push_back(Component&& component) {
-        registry_->push_back(*this, std::forward<Component>(component));
-    }
-
-    template<typename Component, typename... Args>
-    void EntityHandle::emplace(Args&&... args) {
-        registry_->emplace<Component>(*this, std::forward<Args>(args)...);
     }
 }
 

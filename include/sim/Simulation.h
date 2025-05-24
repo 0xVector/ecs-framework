@@ -31,7 +31,7 @@ namespace sim {
 
         void run(size_t for_cycles);
 
-        EntityHandle create();
+        Entity create();
 
     private:
         template<typename Event>
@@ -61,7 +61,7 @@ namespace sim {
     }
 
     template<typename... Cs, typename... Ss>
-    EntityHandle Simulation<Components<Cs...>, Systems<Ss...> >::create() {
+    Entity Simulation<Components<Cs...>, Systems<Ss...> >::create() {
         return {entity_id_++, &registry_};
     }
 

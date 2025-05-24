@@ -3,8 +3,9 @@
 
 namespace sim {
     struct Transform {
-        int x;
-        int y;
+        using dim_t = int;
+        dim_t x = 0;
+        dim_t y = 0;
     };
 }
 

@@ -40,7 +40,7 @@ struct TestSystemB {
 
 struct Movement {
     void operator()(const event::Cycle, Context& ctx) const {
-        ctx.view<sim::Transform>().for_each([](auto& t) {
+        ctx.view<Transform>().for_each([](auto& t) {
             t.x += 1;
             t.y += 1;
         });
