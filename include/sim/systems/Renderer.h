@@ -1,28 +1,31 @@
 #ifndef RENDERER_H
 #define RENDERER_H
+#include <memory>
 #include "sim/Simulation.h"
 
 namespace sim {
     class Renderer {
-        static constexpr int width_ = 800;
-        static constexpr int height_ = 450;
-        static constexpr char title_[] = "Simulation Renderer";
+        struct State;
+        std::unique_ptr<State> state_;
 
     public:
+        Renderer();
+        ~Renderer();
+
         template<typename Event>
-        void operator()(const Event& event, Context& context) const;
+        void operator()(const Event& event, Context& context);
 
-        static void start();
+        void start();
 
-        static void end();
+        void end() const;
 
-        static void render(Context& context);
+        void render(Context& context) const;
 
-        [[noreturn]] static void block();
+        void wait() const;
     };
 
     template<typename Event>
-    void Renderer::operator()(const Event&, Context& context) const {
+    void Renderer::operator()(const Event&, Context& context) {
         if constexpr (std::same_as<Event, event::SimStart>) {
             start();
         } else if constexpr (std::same_as<Event, event::SimEnd>) {

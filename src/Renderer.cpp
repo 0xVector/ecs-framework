@@ -4,31 +4,45 @@
 #include "raylib-cpp.hpp"
 
 namespace sim {
+    constexpr char TITLE[] = "Simulation Renderer";
+    constexpr int WIDTH = 800;
+    constexpr int HEIGHT = 450;
+
+    struct Renderer::State {
+        raylib::Window window;
+
+        State() : window(WIDTH, HEIGHT, TITLE) {
+            window.SetTargetFPS(60);
+        }
+    };
+
+    Renderer::Renderer() = default;
+    Renderer::~Renderer() = default;
+
     void Renderer::start() {
-        InitWindow(width_, height_, title_);
-        SetTargetFPS(60);
+        state_ = std::make_unique<State>();
     }
 
-    // template<typename C, typename S>
-    void Renderer::end() {
-        CloseWindow();
+    void Renderer::end() const {
+        wait();
     }
 
-    // template<typename C, typename S>
-    void Renderer::render(Context& context) {
-        BeginDrawing();
+    void Renderer::render(Context& context) const {
+        state_->window.BeginDrawing();
 
-        ClearBackground(RAYWHITE);
+        state_->window.ClearBackground(RAYWHITE);
 
         context.view<Transform>().for_each([](const Transform& t) {
             DrawRectangle(t.x, t.y, 10, 10, BLUE);
         });
 
-        EndDrawing();
+        state_->window.EndDrawing();
     }
 
-    // template<typename C, typename S>
-    [[noreturn]] void Renderer::block() {
-        while (true);
+    void Renderer::wait() const {
+        while (!state_->window.ShouldClose()) {
+            state_->window.BeginDrawing();
+            state_->window.EndDrawing();
+        }
     }
 }

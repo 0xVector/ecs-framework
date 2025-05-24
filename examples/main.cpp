@@ -60,7 +60,7 @@ int main() {
     e2.emplace<TestComponentB>(2);
     e2.emplace<sim::Transform>(50, 100);
 
-    s.run(1000);
+    s.run(100);
 
     std::cout << "Done" << std::endl;
     return 0;
