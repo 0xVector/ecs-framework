@@ -8,7 +8,13 @@ namespace sim {
     };
 
     struct Sprite {
-        Color color;
+        using dim_t = int;
+        static constexpr Color DEFAULT_COLOR{0, 0, 0, 255};
+        static constexpr dim_t DEFAULT_SIZE = 10;
+
+        Color color = DEFAULT_COLOR;
+        dim_t width = DEFAULT_SIZE;
+        dim_t height = DEFAULT_SIZE;
     };
 }
 

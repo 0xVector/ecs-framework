@@ -9,7 +9,6 @@ namespace sim {
         static constexpr char TITLE[] = "Simulation Renderer";
         static constexpr int WIDTH = 800;
         static constexpr int HEIGHT = 450;
-        static constexpr int ENTITY_SIZE = 10;
         raylib::Window window;
 
         State() : window(WIDTH, HEIGHT, TITLE) {
@@ -21,6 +20,10 @@ namespace sim {
         struct Helper {
             static raylib::Color toRaylibColor(const Color& color) {
                 return {color.r, color.g, color.b, color.a};
+            }
+
+            static void draw_sprite(const Transform& t, const Sprite& sprite) {
+                DrawRectangle(t.x, t.y, sprite.width, sprite.height, toRaylibColor(sprite.color));
             }
         };
     }
@@ -41,10 +44,10 @@ namespace sim {
 
         state_->window.ClearBackground(raylib::RAYWHITE);
 
-        context.view<Transform>().for_each([](EntityHandle entity, const Transform& t) {
-            const Color color = entity.has<Sprite>() ? entity.get<Sprite>().color : Color{0, 0, 0, 255};
-            DrawRectangle(t.x, t.y, 10, 10, detail::Helper::toRaylibColor(color));
-        });
+        context.view<Transform, Sprite>().for_each(
+            [](const Transform& t, const Sprite& sprite) {
+                detail::Helper::draw_sprite(t, sprite);
+            });
 
         state_->window.EndDrawing();
     }
