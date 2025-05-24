@@ -2,6 +2,7 @@
 #define STORAGE_H
 #include <vector>
 #include <memory>
+#include <numeric>
 
 namespace sim {
     using id_t = uint16_t;

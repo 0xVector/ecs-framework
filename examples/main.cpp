@@ -2,7 +2,7 @@
 
 #include "sim/Simulation.h"
 #include "sim/components/Transform.h"
-#include "../include/sim/systems/Renderer.h"
+#include "sim/systems/Renderer.h"
 
 using namespace sim;
 

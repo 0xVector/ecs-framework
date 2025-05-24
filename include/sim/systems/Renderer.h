@@ -1,7 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 #include "sim/Simulation.h"
-#include "raylib.h"
 
 namespace sim {
     class Renderer {
@@ -31,36 +30,6 @@ namespace sim {
         } else if constexpr (std::same_as<Event, event::Cycle>) {
             render(context);
         }
-    }
-
-    // Implementation ============================================================================
-
-    inline void Renderer::start() {
-        InitWindow(width_, height_, title_);
-        SetTargetFPS(60);
-    }
-
-    // template<typename C, typename S>
-    inline void Renderer::end() {
-        CloseWindow();
-    }
-
-    // template<typename C, typename S>
-    inline void Renderer::render(Context& context) {
-        BeginDrawing();
-
-        ClearBackground(RAYWHITE);
-
-        context.view<Transform>().for_each([](const Transform& t) {
-            DrawRectangle(t.x, t.y, 10, 10, BLUE);
-        });
-
-        EndDrawing();
-    }
-
-    // template<typename C, typename S>
-    [[noreturn]] inline void Renderer::block() {
-        while (true);
     }
 }
 
