@@ -36,16 +36,23 @@ namespace sim {
     public:
         [[nodiscard]] size_t size() const;
 
-        [[nodiscard]] bool entity_has(id_t id) const;
+        [[nodiscard]] bool entity_has(id_t entity_id) const;
 
         T& entity_get(id_t id);
 
-        template<typename... Args>
-        void emplace(id_t id, Args&&... args);
+        void push_back(id_t entity_id, const T& component);
 
-        void entity_destroy(id_t id);
+        void push_back(id_t entity_id, T&& component);
+
+        template<typename... Args>
+        void emplace(id_t entity_id, Args&&... args);
+
+        void entity_destroy(id_t entity_id);
 
         void for_each(auto&& func);
+
+    private:
+        void ensure_mappings(id_t entity_id, index_t index);
     };
 
     class EntityHandle;
@@ -60,6 +67,9 @@ namespace sim {
     public:
         template<typename C>
         [[nodiscard]] Storage<C>& get_storage();
+
+        template<typename Component>
+        void push_back(EntityHandle entity, Component&& component);
 
         template<typename Component, typename... Args>
         void emplace(EntityHandle entity, Args&&... args);
@@ -83,6 +93,9 @@ namespace sim {
         template<typename Component>
         [[nodiscard]] Component& get() const;
 
+        template<typename Component>
+        void push_back(Component&& component);
+
         template<typename Component, typename... Args>
         void emplace(Args&&... args);
     };
@@ -95,10 +108,10 @@ namespace sim {
     }
 
     template<typename T>
-    bool Storage<T>::entity_has(const id_t id) const {
-        if (id >= id_to_index_.size())
+    bool Storage<T>::entity_has(const id_t entity_id) const {
+        if (entity_id >= id_to_index_.size())
             return false;
-        return id_to_index_[id] != NO_INDEX;
+        return id_to_index_[entity_id] != NO_INDEX;
     }
 
     template<typename T>
@@ -109,27 +122,31 @@ namespace sim {
     }
 
     template<typename T>
-    template<typename... Args>
-    void Storage<T>::emplace(const id_t id, Args&&... args) {
-        storage_.emplace_back(std::forward<Args>(args)...);
-        const index_t index = storage_.size() - 1;
-
-        if (id >= id_to_index_.size())
-            id_to_index_.resize(id + 1, NO_INDEX);
-        id_to_index_[id] = index;
-
-        if (index >= index_to_id_.size())
-            index_to_id_.resize(index + 1, NO_ID);
-        index_to_id_[index] = id;
+    void Storage<T>::push_back(const id_t entity_id, const T& component) {
+        storage_.push_back(component);
+        ensure_mappings(entity_id, storage_.size() - 1);
     }
 
     template<typename T>
-    void Storage<T>::entity_destroy(const id_t id) {
-        const index_t index = id_to_index_[id];
+    void Storage<T>::push_back(const id_t entity_id, T&& component) {
+        storage_.push_back(std::move(component));
+        ensure_mappings(entity_id, storage_.size() - 1);
+    }
+
+    template<typename T>
+    template<typename... Args>
+    void Storage<T>::emplace(const id_t entity_id, Args&&... args) {
+        storage_.emplace_back(std::forward<Args>(args)...);
+        ensure_mappings(entity_id, storage_.size() - 1);
+    }
+
+    template<typename T>
+    void Storage<T>::entity_destroy(const id_t entity_id) {
+        const index_t index = id_to_index_[entity_id];
         const index_t last_index = storage_.size() - 1;
         const id_t swapped_id = index_to_id_[last_index];
         std::swap(storage_[index], storage_[last_index]);
-        std::swap(id_to_index_[id], id_to_index_[swapped_id]);
+        std::swap(id_to_index_[entity_id], id_to_index_[swapped_id]);
         std::swap(index_to_id_[index], index_to_id_[last_index]);
         storage_.pop_back();
     }
@@ -146,6 +163,17 @@ namespace sim {
         }
     }
 
+    template<typename T>
+    void Storage<T>::ensure_mappings(const id_t entity_id, const index_t index) {
+        if (entity_id >= id_to_index_.size())
+            id_to_index_.resize(entity_id + 1, NO_INDEX);
+        id_to_index_[entity_id] = index;
+
+        if (index >= index_to_id_.size())
+            index_to_id_.resize(index + 1, NO_ID);
+        index_to_id_[index] = entity_id;
+    }
+
     template<typename Component>
     Storage<Component>& Registry::get_storage() {
         auto id = get_component_id<Component>();
@@ -156,9 +184,15 @@ namespace sim {
         return static_cast<Storage<Component> &>(*storages_[id]);
     }
 
+    template<typename Component>
+    void Registry::push_back(const EntityHandle entity, Component&& component) {
+        auto& storage = get_storage<std::decay_t<Component>>();
+        storage.push_back(entity.id(), std::forward<Component>(component));
+    }
+
     template<typename Component, typename... Args>
     void Registry::emplace(const EntityHandle entity, Args&&... args) {
-        Storage<Component>& storage = get_storage<Component>();
+        auto& storage = get_storage<Component>();
         storage.emplace(entity.id(), std::forward<Args>(args)...);
     }
 
@@ -181,6 +215,11 @@ namespace sim {
     template<typename Component>
     Component& EntityHandle::get() const {
         return registry_->get_storage<Component>().entity_get(id_);
+    }
+
+    template<typename Component>
+    void EntityHandle::push_back(Component&& component) {
+        registry_->push_back(*this, std::forward<Component>(component));
     }
 
     template<typename Component, typename... Args>
