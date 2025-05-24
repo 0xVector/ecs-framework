@@ -31,15 +31,15 @@ namespace sim {
 
     template<typename... Components>
     void View<Components...>::for_each(auto&& func) {
-        auto& storage = registry_->get<first_t<Components...> >();
+        auto& storage = registry_->get_storage<first_t<Components...> >();
         storage.for_each([&](const id_t id, auto&) {
-            const bool has_all = (... && registry_->get<Components>().has(id));
+            const bool has_all = (... && registry_->get_storage<Components>().entity_has(id));
             if (has_all) {
                 EntityHandle entity(id, registry_);
-                if constexpr (requires { func(entity, registry_->get<Components>()->get(id)...); })
-                    std::forward<decltype(func)>(func)(entity, registry_->get<Components>().get(id)...);
+                if constexpr (requires { func(entity, registry_->get_storage<Components>().entity_get(id)...); })
+                    std::forward<decltype(func)>(func)(entity, registry_->get_storage<Components>().entity_get(id)...);
                 else
-                    std::forward<decltype(func)>(func)(registry_->get<Components>().get(id)...);
+                    std::forward<decltype(func)>(func)(registry_->get_storage<Components>().entity_get(id)...);
             }
         });
     }

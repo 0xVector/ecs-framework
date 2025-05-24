@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
+#include "sim/components/Sprite.h"
 #include "sim/components/Transform.h"
 #include "sim/systems/Renderer.h"
 
@@ -54,11 +55,13 @@ int main() {
     auto e2 = s.create();
 
     e1.emplace<TestComponentA>(5);
-    e1.emplace<sim::Transform>(0, 0);
+    e1.emplace<Transform>(0, 0);
+    e1.emplace<Sprite>(Color{255, 0, 0, 255});
 
     e2.emplace<TestComponentA>(1);
     e2.emplace<TestComponentB>(2);
-    e2.emplace<sim::Transform>(50, 100);
+    e2.emplace<Transform>(50, 100);
+    e2.emplace<Sprite>(Color{0, 255, 0, 255});
 
     s.run(100);
 
