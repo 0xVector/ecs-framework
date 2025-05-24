@@ -1,8 +1,11 @@
-#ifndef ENTITYTAGS_H
-#define ENTITYTAGS_H
+#ifndef TRAITS_H
+#define TRAITS_H
+#include <tuple>
 #include <type_traits>
 
 namespace sim {
+    // TODO: remove unused
+
     template<typename Tag, typename EntityType>
     struct has_tag : std::false_type {};
 
@@ -31,13 +34,16 @@ namespace sim {
     };
 
     template<template<typename...> class From, typename... Params>
-    struct extract_params<From<Params...>> {
+    struct extract_params<From<Params...> > {
         template<template<typename...> class To>
         using to = To<Params...>;
     };
 
     template<typename From, template<typename...> class To>
     using extracted_to_t = typename extract_params<From>::template to<To>;
+
+    template<typename... Ts>
+    using first_t = std::tuple_element_t<0, std::tuple<Ts...> >;
 }
 
-#endif //ENTITYTAGS_H
+#endif //TRAITS_H

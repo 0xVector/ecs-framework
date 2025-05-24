@@ -83,3 +83,4 @@ A step of the simulation when all Entities and Elements are processed by firing 
 - renderer separate?
 - raylib global namespace problems
 - way to make an entity type (set of components) easily
+- pick smallest storage in view foreach

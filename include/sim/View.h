@@ -1,19 +1,17 @@
 #ifndef VIEW_H
 #define VIEW_H
+
 #include "Storage.h"
+#include "Traits.h"
 
 namespace sim {
     template<typename... Components>
     class View {
-        std::tuple<Storage<Components>*...> storages_;
+        Registry* registry_;
 
     public:
-        explicit View(Storage<Components>*... storages);
+        explicit View(Registry* registry);
         void for_each(auto&& func);
-
-    private:
-        template<std::size_t I = 0, typename ... Cs>
-        void for_each_nested(auto&& func, Cs&... components);
     };
 
     class Context {
@@ -29,36 +27,28 @@ namespace sim {
     // Implementation ============================================================================
 
     template<typename... Components>
-    View<Components...>::View(Storage<Components>*... storages): storages_(storages...) {}
+    View<Components...>::View(Registry* registry): registry_(registry) {}
 
     template<typename... Components>
     void View<Components...>::for_each(auto&& func) {
-        for_each_nested(std::forward<decltype(func)>(func));
-
-        // storage_a_->for_each([&](auto&& a) {
-        //     storage_b_->for_each([&](auto&& b) {
-        //         func(a, b);
-        //     });
-        // });
-    }
-
-    template<typename ... Components>
-    template<std::size_t I, typename ... Cs>
-    void View<Components...>::for_each_nested(auto&& func, Cs&... components) {
-        if constexpr (I < sizeof...(Components)) {
-            std::get<I>(storages_)->for_each([&](auto& component) {
-                for_each_nested<I + 1>(func, components..., component);
-            });
-        } else {
-            func(components...);
-        }
+        auto& storage = registry_->get<first_t<Components...> >();
+        storage.for_each([&](const id_t id, auto&) {
+            const bool has_all = (... && registry_->get<Components>().has(id));
+            if (has_all) {
+                EntityHandle entity(id, registry_);
+                if constexpr (requires { func(entity, registry_->get<Components>()->get(id)...); })
+                    std::forward<decltype(func)>(func)(entity, registry_->get<Components>().get(id)...);
+                else
+                    std::forward<decltype(func)>(func)(registry_->get<Components>().get(id)...);
+            }
+        });
     }
 
     inline Context::Context(Registry* registry): registry_(registry) {}
 
-    template<typename ... Components>
+    template<typename... Components>
     View<Components...> Context::view() {
-        return View<Components...>(&registry_->get<Components>()...);
+        return registry_->view<Components...>();
     }
 }
 #endif //VIEW_H

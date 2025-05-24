@@ -26,12 +26,16 @@ namespace sim {
 
     template<typename T>
     class Storage final : public StorageBase {
+        static constexpr index_t NO_INDEX = std::numeric_limits<index_t>::max();
+        static constexpr id_t NO_ID = std::numeric_limits<id_t>::max();
         std::vector<index_t> id_to_index_;
         std::vector<id_t> index_to_id_;
         std::vector<T> storage_;
 
     public:
         [[nodiscard]] size_t size() const;
+
+        [[nodiscard]] bool has(id_t id) const;
 
         T& get(id_t id);
 
@@ -45,6 +49,10 @@ namespace sim {
 
     class EntityHandle;
 
+    // Forward declaration (TODO)
+    template<typename... Components>
+    class View;
+
     class Registry {
         std::vector<std::unique_ptr<StorageBase> > storages_;
 
@@ -54,6 +62,9 @@ namespace sim {
 
         template<typename Component, typename... Args>
         void emplace(EntityHandle entity, Args&&... args);
+
+        template<typename ... Components>
+        View<Components...> view();
     };
 
     class EntityHandle {
@@ -64,6 +75,12 @@ namespace sim {
         EntityHandle(id_t index, Registry* registry);
 
         [[nodiscard]] id_t id() const;
+
+        template<typename Component>
+        [[nodiscard]] bool has() const;
+
+        template<typename Component>
+        [[nodiscard]] Component& get() const;
 
         template<typename Component, typename... Args>
         void emplace(Args&&... args);
@@ -77,7 +94,16 @@ namespace sim {
     }
 
     template<typename T>
+    bool Storage<T>::has(const id_t id) const {
+        if (id >= id_to_index_.size())
+            return false;
+        return id_to_index_[id] != NO_INDEX;
+    }
+
+    template<typename T>
     T& Storage<T>::get(const id_t id) {
+        if (id >= id_to_index_.size()) // TODO: only in debug
+            throw std::out_of_range("ID out of range");
         return storage_[id_to_index_[id]];
     }
 
@@ -88,11 +114,11 @@ namespace sim {
         const index_t index = storage_.size() - 1;
 
         if (id >= id_to_index_.size())
-            id_to_index_.resize(id + 1);
+            id_to_index_.resize(id + 1, NO_INDEX);
         id_to_index_[id] = index;
 
         if (index >= index_to_id_.size())
-            index_to_id_.resize(index + 1);
+            index_to_id_.resize(index + 1, NO_ID);
         index_to_id_[index] = id;
     }
 
@@ -109,11 +135,13 @@ namespace sim {
 
     template<typename T>
     void Storage<T>::for_each(auto&& func) {
-        for (auto&& it: storage_) {
-            func(it);
-            // TODO
-            // if constexpr ( requires {func(it);}) {
-            // }
+        for (size_t i = 0; i < storage_.size(); ++i) {
+            const id_t id = index_to_id_[i];
+            T& item = storage_[i];
+            if constexpr (requires { func(id, item); })
+                func(id, item);
+            else
+                func(item);
         }
     }
 
@@ -133,10 +161,25 @@ namespace sim {
         storage.emplace(entity.id(), std::forward<Args>(args)...);
     }
 
+    template<typename ... Components>
+    View<Components...> Registry::view() {
+        return View<Components...>(this);
+    }
+
     inline EntityHandle::EntityHandle(const id_t index, Registry* registry): id_(index), registry_(registry) {}
 
     inline id_t EntityHandle::id() const {
         return id_;
+    }
+
+    template<typename Component>
+    bool EntityHandle::has() const {
+        return registry_->get<Component>();
+    }
+
+    template<typename Component>
+    Component& EntityHandle::get() const {
+        return registry_->get<Component>();
     }
 
     template<typename Component, typename... Args>
