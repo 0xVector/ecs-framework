@@ -1,57 +1,66 @@
 #include <iostream>
 
-#include "sim/Entity.h"
-#include "sim/Event.h"
 #include "sim/Simulation.h"
+#include "sim/components/Transform.h"
+#include "../include/sim/systems/Renderer.h"
 
 using namespace sim;
 
-struct TestEntity;
-
-struct EntityB;
-
-struct ComponentB {
-    std::string name = "BBB";
-
-    template<typename... E>
-    void operator()(const event::Cycle, Simulation<E...>& sim) const {
-        std::cout << "Im " << name <<  " at " << sim.cycle() << std::endl;
-    }
-};
-
 struct TestComponentA {
     int a;
-
-    explicit TestComponentA(const int val):
-        a(val) {
-    }
-
-    template<typename... Entities>
-    void operator()(const event::Cycle, Simulation<Entities...>& simulation) const {
-        auto e = simulation.template get_entities_of_type<EntityB>()[0];
-        ComponentB c = e.template get_component<ComponentB>();
-        std::cout << "Cycle from A!" << a << " with friend: " << c.name << std::endl;
-    }
 };
 
-struct TestEntity : Entity<TestEntity, TestComponentA> {
-    explicit TestEntity(int a): Entity(a) {
+struct TestComponentB {
+    int b;
+};
+
+struct TestSystemA {
+    void operator()(const event::SimStart) const {
+        std::cout << "Simple start A" << std::endl;
+    }
+
+    void operator()(const event::Cycle) const {
+        std::cout << "Simple cycle A" << std::endl;
     }
 };
 
-struct EntityB : Entity<EntityB, ComponentB> {
-    explicit EntityB() = default;
+struct TestSystemB {
+    void operator()(const event::Cycle) const {
+        std::cout << "Simple cycle B" << std::endl;
+    }
+
+    void operator()(const event::Cycle, Context& ctx) const {
+        ctx.view<TestComponentA, TestComponentB>().for_each(
+            [](const TestComponentA& a, const TestComponentB& b) {
+                std::cout << "Complex cycle B (" << a.a << ", " << b.b << ")" << std::endl;
+            });
+    }
 };
 
-class Fake {};
+struct Movement {
+    void operator()(const event::Cycle, Context& ctx) const {
+        ctx.view<Transform>().for_each([](auto& t) {
+            t.x += 1;
+            t.y += 1;
+        });
+    }
+};
 
 int main() {
-    auto e = TestEntity(5);
-    auto e2 = EntityB();
-    auto s = Simulation<TestEntity, EntityB>();
-    s.add(e);
-    s.add(e2);
-    s.run(10);
+    auto s = Simulation<Components<>, Systems<> >()
+            .with_components<TestComponentA, TestComponentB>()
+            .with_systems<TestSystemA, TestSystemB, Movement, Renderer>();
+    auto e1 = s.create();
+    auto e2 = s.create();
+
+    e1.emplace<TestComponentA>(5);
+    e1.emplace<sim::Transform>(0, 0);
+
+    e2.emplace<TestComponentA>(1);
+    e2.emplace<TestComponentB>(2);
+    e2.emplace<sim::Transform>(50, 100);
+
+    s.run(1000);
 
     std::cout << "Done" << std::endl;
     return 0;

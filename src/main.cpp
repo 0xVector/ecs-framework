@@ -1,7 +1,8 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
-#include "sim/renderer/Renderer.h"
+#include "sim/components/Transform.h"
+#include "../include/sim/systems/Renderer.h"
 
 using namespace sim;
 
