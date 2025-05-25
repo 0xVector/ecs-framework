@@ -1,8 +1,9 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
+#include "sim/components/Sprite.h"
 #include "sim/components/Transform.h"
-#include "../include/sim/systems/Renderer.h"
+#include "sim/systems/Renderer.h"
 
 using namespace sim;
 
@@ -53,14 +54,19 @@ int main() {
     auto e1 = s.create();
     auto e2 = s.create();
 
-    e1.emplace<TestComponentA>(5);
-    e1.emplace<sim::Transform>(0, 0);
+    Sprite red(Color{255, 0, 0, 255});
+    Sprite green(Color{0, 255, 0, 255});
 
-    e2.emplace<TestComponentA>(1);
-    e2.emplace<TestComponentB>(2);
-    e2.emplace<sim::Transform>(50, 100);
+    e1.emplace<TestComponentA>(5)
+            .emplace<Transform>(0, 0)
+            .emplace<Sprite>(red);
 
-    s.run(1000);
+    e2.emplace<TestComponentA>(1)
+            .emplace<TestComponentB>(2)
+            .emplace<Transform>(50, 100)
+            .push_back(green);
+
+    s.run(100);
 
     std::cout << "Done" << std::endl;
     return 0;

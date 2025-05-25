@@ -57,14 +57,14 @@ int main() {
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});
 
-    e1.emplace<TestComponentA>(5);
-    e1.emplace<Transform>(0, 0);
-    e1.emplace<Sprite>(red);
+    e1.emplace<TestComponentA>(5)
+            .emplace<Transform>(0, 0)
+            .emplace<Sprite>(red);
 
-    e2.emplace<TestComponentA>(1);
-    e2.emplace<TestComponentB>(2);
-    e2.emplace<Transform>(50, 100);
-    e2.push_back(green);
+    e2.emplace<TestComponentA>(1)
+            .emplace<TestComponentB>(2)
+            .emplace<Transform>(50, 100)
+            .push_back(green);
 
     s.run(100);
 

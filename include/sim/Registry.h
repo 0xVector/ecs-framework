@@ -58,10 +58,10 @@ namespace sim {
         [[nodiscard]] Component& get() const;
 
         template<typename C>
-        void push_back(C&& component);
+        Entity& push_back(C&& component);
 
         template<typename Component, typename... Args>
-        void emplace(Args&&... args);
+        Entity& emplace(Args&&... args);
     };
 
     // Implementation ============================================================================
@@ -110,13 +110,15 @@ namespace sim {
     }
 
     template<typename Component>
-    void Entity::push_back(Component&& component) {
+    Entity& Entity::push_back(Component&& component) {
         registry_->push_back(*this, std::forward<Component>(component));
+        return *this;
     }
 
     template<typename Component, typename... Args>
-    void Entity::emplace(Args&&... args) {
+    Entity& Entity::emplace(Args&&... args) {
         registry_->emplace<Component>(*this, std::forward<Args>(args)...);
+        return *this;
     }
 };
 #endif //REGISTRY_H
