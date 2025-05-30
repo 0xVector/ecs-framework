@@ -96,10 +96,7 @@ namespace sim {
         for (size_t i = 0; i < storage_.size(); ++i) {
             const id_t id = index_to_id_[i];
             T& item = storage_[i];
-            if constexpr (requires { func(id, item); })
-                func(id, item);
-            else
-                func(item);
+            func(id, item);
         }
     }
 
