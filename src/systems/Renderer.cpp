@@ -7,8 +7,8 @@
 namespace sim {
     struct Renderer::State {
         static constexpr char TITLE[] = "Simulation Renderer";
-        static constexpr int WIDTH = 800;
-        static constexpr int HEIGHT = 450;
+        static constexpr int WIDTH = 1000;
+        static constexpr int HEIGHT = 1000;
         raylib::Window window;
 
         State() : window(WIDTH, HEIGHT, TITLE) {
@@ -54,8 +54,9 @@ namespace sim {
 
     void Renderer::wait() const {
         while (!state_->window.ShouldClose()) {
-            state_->window.BeginDrawing();
-            state_->window.EndDrawing();
+            // TODO - handle events properly
+            PollInputEvents();
+            WaitTime(0.01);
         }
     }
 }
