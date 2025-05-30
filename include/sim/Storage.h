@@ -4,16 +4,16 @@
 #include <memory>
 #include <numeric>
 
-namespace sim {
-    using id_t = uint16_t;
-    using index_t = uint16_t;
+#include "Types.h"
 
+namespace sim {
     class StorageBase {};
 
     template<typename T>
     class Storage final : public StorageBase {
-        static constexpr index_t NO_INDEX = std::numeric_limits<index_t>::max();
-        static constexpr id_t NO_ID = std::numeric_limits<id_t>::max();
+        using index_t = uint16_t; // Index type for storage
+        static constexpr index_t NO_INDEX = std::numeric_limits<index_t>::max(); // Sentinel value for no index
+
         std::vector<index_t> id_to_index_;
         std::vector<id_t> index_to_id_;
         std::vector<T> storage_;

@@ -1,12 +1,28 @@
 #ifndef TRANSFORM_H
 #define TRANSFORM_H
+#include "sim/Types.h"
 
 namespace sim {
     struct Transform {
-        using dim_t = int;
-        dim_t x = 0;
-        dim_t y = 0;
+        dim_t x = 0, y = 0;
     };
+
+    struct Movable {
+        dim_t speed = 1;
+    };
+
+    struct PositionTarget {
+        dim_t x = 0, y = 0;
+    };
+
+    struct EntityTarget {
+        id_t target_entity;
+    };
+
+    struct RandomPositionTarget {};
+
+    template<typename T>
+    struct MoveToClosestWith {};
 }
 
 #endif //TRANSFORM_H

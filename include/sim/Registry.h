@@ -42,7 +42,7 @@ namespace sim {
         [[nodiscard]] View<Cs...> view();
     };
 
-    class Entity {
+    class [[nodiscard]] Entity {
         id_t id_;
         Registry* registry_;
 

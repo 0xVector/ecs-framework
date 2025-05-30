@@ -82,5 +82,7 @@ A step of the simulation when all Entities and Elements are processed by firing 
 - foreach views
 - renderer separate?
 - raylib global namespace problems
-- way to make an entity type (set of components) easily
+- way to make an entity type (set of components) easily: create gets the types, then is enforced that all components are emplaced before start 
 - pick smallest storage in view foreach
+- storage specialization for empty types
+- spatial indexing

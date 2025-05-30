@@ -3,6 +3,7 @@
 #include "sim/Simulation.h"
 #include "sim/components/Sprite.h"
 #include "sim/components/Transform.h"
+#include "sim/systems/Movement.h"
 #include "sim/systems/Renderer.h"
 
 using namespace sim;
@@ -38,32 +39,25 @@ struct TestSystemB {
     }
 };
 
-struct Movement {
-    void operator()(const event::Cycle, Context& ctx) const {
-        ctx.view<Transform>().for_each([](auto& t) {
-            t.x += 1;
-            t.y += 1;
-        });
-    }
-};
-
 int main() {
     auto s = Simulation<Components<>, Systems<> >()
             .with_components<TestComponentA, TestComponentB>()
-            .with_systems<TestSystemA, TestSystemB, Movement, Renderer>();
-    auto e1 = s.create();
-    auto e2 = s.create();
+            .with_systems<TestSystemA, TestSystemB, RandomMovement, Renderer>();
 
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});
 
-    e1.emplace<TestComponentA>(5)
-            .emplace<Transform>(0, 0)
+    s.create()
+            .emplace<TestComponentA>(5)
+            .emplace<Transform>(500, 500).emplace<Movable>()
+            .emplace<RandomPositionTarget>()
             .emplace<Sprite>(red);
 
-    e2.emplace<TestComponentA>(1)
+    s.create()
+            .emplace<TestComponentA>(1)
             .emplace<TestComponentB>(2)
-            .emplace<Transform>(50, 100)
+            .emplace<Transform>(500, 600).emplace<Movable>()
+            .emplace<RandomPositionTarget>()
             .push_back(green);
 
     s.run(100);

@@ -54,7 +54,9 @@ namespace sim {
         Context ctx(&registry_);
         dispatch_to_all(event::SimStart{}, ctx);
         for (size_t i = 0; i < for_cycles; ++i) {
+            dispatch_to_all(event::PreCycle{}, ctx);
             dispatch_to_all(event::Cycle{}, ctx);
+            dispatch_to_all(event::PostCycle{}, ctx);
             ++cycle_;
         }
         dispatch_to_all(event::SimEnd{}, ctx);
