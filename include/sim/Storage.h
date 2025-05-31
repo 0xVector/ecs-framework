@@ -18,28 +18,6 @@ namespace sim {
         std::vector<id_t> index_to_id_; // Dense
         std::vector<T> storage_; // Dense
 
-        template<bool Const>
-        struct iterator_base {
-            using value_type = std::pair<id_t, std::conditional_t<Const, const T &, T &> >;
-            using reference = value_type;
-            using difference_type = std::ptrdiff_t;
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
-
-        private:
-            std::conditional_t<Const, const Storage*, Storage*> storage_;
-            index_t index_ = 0;
-
-        public:
-            iterator_base() = default;
-            bool operator==(const iterator_base& other) const = default;
-            reference operator*() const;
-            iterator_base& operator++();
-        };
-
-        using iterator = iterator_base<false>;
-        using const_iterator = iterator_base<true>;
-
     public:
         [[nodiscard]] size_t size() const;
 
@@ -58,9 +36,27 @@ namespace sim {
 
         void for_each(auto&& func);
 
-        [[nodiscard]] auto begin(this auto&& self);
+        struct iterator {
+            using value_type = id_t;
+            using reference = id_t;
+            using difference_type = std::ptrdiff_t;
+            using iterator_category = std::forward_iterator_tag;
+            using iterator_concept = std::forward_iterator_tag;
 
-        [[nodiscard]] auto end(this auto&& self);
+        private:
+            const Storage* storage_;
+            index_t index_;
+
+        public:
+            iterator(const Storage* storage, index_t index);
+            bool operator==(const iterator& other) const = default;
+            reference operator*() const;
+            iterator& operator++();
+        };
+
+        [[nodiscard]] iterator begin() const;
+
+        [[nodiscard]] iterator end() const;
 
     private:
         void ensure_mappings(id_t entity_id, index_t index);
@@ -68,15 +64,17 @@ namespace sim {
 
     // Implementation ============================================================================
 
+
     template<typename T>
-    template<bool Const>
-    typename Storage<T>::template iterator_base<Const>::reference Storage<T>::iterator_base<Const>::operator*() const {
-        return {storage_->index_to_id_[index_], storage_->storage_[index_]};
+    Storage<T>::iterator::iterator(const Storage* storage, const index_t index): storage_(storage), index_(index) {}
+
+    template<typename T>
+    typename Storage<T>::iterator::reference Storage<T>::iterator::operator*() const {
+        return storage_->index_to_id_[index_];
     }
 
     template<typename T>
-    template<bool Const>
-    typename Storage<T>::template iterator_base<Const>& Storage<T>::iterator_base<Const>::operator++() {
+    typename Storage<T>::iterator& Storage<T>::iterator::operator++() {
         ++index_;
         return *this;
     }
@@ -96,7 +94,7 @@ namespace sim {
     template<typename T>
     auto&& Storage<T>::get(this auto&& self, const id_t id) {
         if (id >= self.id_to_index_.size()) // TODO: only in debug
-            throw std::out_of_range("ID out of range");
+            throw std::out_of_range("No component for entity with this ID");
         return self.storage_[self.id_to_index_[id]];
     }
 
@@ -140,15 +138,14 @@ namespace sim {
     }
 
     template<typename T>
-    auto Storage<T>::begin(this auto&& self) {
-        const bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)> >;
-        return iterator_base<is_const>{&self, 0};
+    typename Storage<T>::iterator Storage<T>::begin() const {
+        return {this, 0};
     }
 
     template<typename T>
-    auto Storage<T>::end(this auto&& self) {
-        const bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)> >;
-        return iterator_base<is_const>{&self, self.storage_.size()};
+    typename Storage<T>::iterator Storage<T>::end() const {
+        const auto end_index = static_cast<index_t>(storage_.size()); // TODO: some check
+        return {this, end_index};
     }
 
     template<typename T>

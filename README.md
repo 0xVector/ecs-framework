@@ -86,3 +86,5 @@ A step of the simulation when all Entities and Elements are processed by firing 
 - pick smallest storage in view foreach
 - storage specialization for empty types
 - spatial indexing
+- unpack on entity that unpacks the components
+- view constness

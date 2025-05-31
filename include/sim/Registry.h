@@ -55,7 +55,10 @@ namespace sim {
         [[nodiscard]] bool has() const;
 
         template<typename Component>
-        [[nodiscard]] Component& get() const;
+        [[nodiscard]] Component& get();
+
+        template<typename... Components>
+        [[nodiscard]] std::tuple<Components &...> get_all();
 
         template<typename C>
         Entity& push_back(C&& component);
@@ -90,7 +93,7 @@ namespace sim {
 
     template<typename... Cs>
     View<Cs...> Registry::view() {
-        return View<Cs...>(this);
+        return View<Cs...>(&get_storage<Cs>()..., this);
     }
 
     inline Entity::Entity(const id_t id, Registry* registry): id_(id), registry_(registry) {}
@@ -105,8 +108,13 @@ namespace sim {
     }
 
     template<typename Component>
-    Component& Entity::get() const {
+    Component& Entity::get() {
         return registry_->get_storage<Component>().get(id_);
+    }
+
+    template<typename... Components>
+    std::tuple<Components &...> Entity::get_all() {
+        return {get<Components>()...};
     }
 
     template<typename Component>
