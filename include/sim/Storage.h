@@ -64,7 +64,6 @@ namespace sim {
 
     // Implementation ============================================================================
 
-
     template<typename T>
     Storage<T>::iterator::iterator(const Storage* storage, const index_t index): storage_(storage), index_(index) {}
 

@@ -19,13 +19,7 @@ namespace sim {
     template<typename Event>
     void Dispatcher<Ss...>::dispatch_to_all(const Event& event, Context& context) {
         std::apply([&](Ss&... system) {
-            ([&]() {
-                // if constexpr (requires { component(*this, event, context); }) {
-                //     component(*this, event, context);
-                // }
-                // if constexpr (requires { component(*this, event); }) {
-                //     component(*this, event);
-                // }
+            ([&] {
                 if constexpr (requires { system(event, context); }) {
                     system(event, context);
                 }
