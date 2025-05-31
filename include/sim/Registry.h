@@ -106,7 +106,7 @@ namespace sim {
 
     template<typename Component>
     Component& Entity::get() const {
-        return registry_->get_storage<Component>().entity_get(id_);
+        return registry_->get_storage<Component>().get(id_);
     }
 
     template<typename Component>

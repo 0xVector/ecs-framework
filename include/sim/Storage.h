@@ -14,16 +14,38 @@ namespace sim {
         using index_t = uint16_t; // Index type for storage
         static constexpr index_t NO_INDEX = std::numeric_limits<index_t>::max(); // Sentinel value for no index
 
-        std::vector<index_t> id_to_index_;
-        std::vector<id_t> index_to_id_;
-        std::vector<T> storage_;
+        std::vector<index_t> id_to_index_; // Sparse
+        std::vector<id_t> index_to_id_; // Dense
+        std::vector<T> storage_; // Dense
+
+        template<bool Const>
+        struct iterator_base {
+            using value_type = std::pair<id_t, std::conditional_t<Const, const T &, T &> >;
+            using reference = value_type;
+            using difference_type = std::ptrdiff_t;
+            using iterator_category = std::forward_iterator_tag;
+            using iterator_concept = std::forward_iterator_tag;
+
+        private:
+            std::conditional_t<Const, const Storage*, Storage*> storage_;
+            index_t index_ = 0;
+
+        public:
+            iterator_base() = default;
+            bool operator==(const iterator_base& other) const = default;
+            reference operator*() const;
+            iterator_base& operator++();
+        };
+
+        using iterator = iterator_base<false>;
+        using const_iterator = iterator_base<true>;
 
     public:
         [[nodiscard]] size_t size() const;
 
         [[nodiscard]] bool entity_has(id_t entity_id) const;
 
-        T& entity_get(id_t id);
+        auto&& get(this auto&& self, id_t id);
 
         void push_back(id_t entity_id, const T& component);
 
@@ -32,15 +54,32 @@ namespace sim {
         template<typename... Args>
         void emplace(id_t entity_id, Args&&... args);
 
-        void entity_destroy(id_t entity_id);
+        void remove(id_t entity_id);
 
         void for_each(auto&& func);
+
+        [[nodiscard]] auto begin(this auto&& self);
+
+        [[nodiscard]] auto end(this auto&& self);
 
     private:
         void ensure_mappings(id_t entity_id, index_t index);
     };
 
     // Implementation ============================================================================
+
+    template<typename T>
+    template<bool Const>
+    typename Storage<T>::template iterator_base<Const>::reference Storage<T>::iterator_base<Const>::operator*() const {
+        return {storage_->index_to_id_[index_], storage_->storage_[index_]};
+    }
+
+    template<typename T>
+    template<bool Const>
+    typename Storage<T>::template iterator_base<Const>& Storage<T>::iterator_base<Const>::operator++() {
+        ++index_;
+        return *this;
+    }
 
     template<typename T>
     size_t Storage<T>::size() const {
@@ -55,10 +94,10 @@ namespace sim {
     }
 
     template<typename T>
-    T& Storage<T>::entity_get(const id_t id) {
-        if (id >= id_to_index_.size()) // TODO: only in debug
+    auto&& Storage<T>::get(this auto&& self, const id_t id) {
+        if (id >= self.id_to_index_.size()) // TODO: only in debug
             throw std::out_of_range("ID out of range");
-        return storage_[id_to_index_[id]];
+        return self.storage_[self.id_to_index_[id]];
     }
 
     template<typename T>
@@ -81,7 +120,7 @@ namespace sim {
     }
 
     template<typename T>
-    void Storage<T>::entity_destroy(const id_t entity_id) {
+    void Storage<T>::remove(const id_t entity_id) {
         const index_t index = id_to_index_[entity_id];
         const index_t last_index = storage_.size() - 1;
         const id_t swapped_id = index_to_id_[last_index];
@@ -98,6 +137,18 @@ namespace sim {
             T& item = storage_[i];
             func(id, item);
         }
+    }
+
+    template<typename T>
+    auto Storage<T>::begin(this auto&& self) {
+        const bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)> >;
+        return iterator_base<is_const>{&self, 0};
+    }
+
+    template<typename T>
+    auto Storage<T>::end(this auto&& self) {
+        const bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)> >;
+        return iterator_base<is_const>{&self, self.storage_.size()};
     }
 
     template<typename T>

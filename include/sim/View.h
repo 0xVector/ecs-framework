@@ -36,10 +36,10 @@ namespace sim {
             const bool has_all = (... && registry_->get_storage<Cs>().entity_has(id));
             if (has_all) {
                 Entity entity(id, registry_);
-                if constexpr (requires { func(entity, registry_->get_storage<Cs>().entity_get(id)...); })
-                    std::forward<decltype(func)>(func)(entity, registry_->get_storage<Cs>().entity_get(id)...);
+                if constexpr (requires { func(entity, registry_->get_storage<Cs>().get(id)...); })
+                    std::forward<decltype(func)>(func)(entity, registry_->get_storage<Cs>().get(id)...);
                 else
-                    std::forward<decltype(func)>(func)(registry_->get_storage<Cs>().entity_get(id)...);
+                    std::forward<decltype(func)>(func)(registry_->get_storage<Cs>().get(id)...);
             }
         });
     }
