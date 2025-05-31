@@ -1,67 +1,67 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
-#include "sim/components/Sprite.h"
-#include "sim/components/Transform.h"
 #include "sim/systems/Movement.h"
 #include "sim/systems/Renderer.h"
 
 using namespace sim;
 
-struct TestComponentA {
+struct TestComponent1 {
     int a;
 };
 
-struct TestComponentB {
+struct TestComponent2 {
     int b;
 };
 
 struct TestSystemA {
     void operator()(const event::SimStart) const {
-        std::cout << "Simple start A" << std::endl;
+        std::cout << "System A starting" << std::endl;
+    }
+
+    void operator()(const event::SimEnd) const {
+        std::cout << "System A ending" << std::endl;
     }
 
     void operator()(const event::Cycle) const {
-        std::cout << "Simple cycle A" << std::endl;
+        std::cout << "[A]: Simple cycle" << std::endl;
+    }
+
+    void operator()(const event::Cycle, Context ctx) const {
+        ctx.view<TestComponent1>().for_each([ctx](const Entity entity, const TestComponent1& a) {
+            std::cout << "[A]: Cycle " << ctx.cycle() << " "
+                    "for entity #" << entity.id() << " "
+                    "with TestComponent1(" << a.a << ")" << std::endl;
+        });
     }
 };
 
 struct TestSystemB {
-    void operator()(const event::Cycle) const {
-        std::cout << "Simple cycle B" << std::endl;
-    }
-
     void operator()(const event::Cycle, Context& ctx) const {
-        ctx.view<TestComponentA, TestComponentB>().for_each(
-            [](const TestComponentA& a, const TestComponentB& b) {
-                std::cout << "Complex cycle B (" << a.a << ", " << b.b << ")" << std::endl;
-            });
+        for (Entity entity: ctx.view<TestComponent1, TestComponent2>()) {
+            std::cout << "[B]: Cycle " << ctx.cycle() << " "
+                    "for entity #" << entity.id() << " "
+                    "with TestComponent1(" << entity.get<TestComponent1>().a << ") "
+                    "and TestComponent2(" << entity.get<TestComponent2>().b << ")" << std::endl;
+        }
     }
 };
 
 int main() {
-    auto s = Simulation<Components<>, Systems<> >()
-            .with_components<TestComponentA, TestComponentB>()
-            .with_systems<TestSystemA, TestSystemB, RandomMovement, Renderer>();
-
-    Sprite red(Color{255, 0, 0, 255});
-    Sprite green(Color{0, 255, 0, 255});
+    auto s = Simulation<Components<TestComponent1>, Systems<> >()
+            .with_components<TestComponent2>()
+            .with_systems<TestSystemA, TestSystemB>();
 
     s.create()
-            .emplace<TestComponentA>(5)
-            .emplace<Transform>(500, 500).emplace<Movable>()
-            .emplace<RandomPositionTarget>()
-            .emplace<Sprite>(red);
+            .emplace<TestComponent1>(1);
 
     s.create()
-            .emplace<TestComponentA>(1)
-            .emplace<TestComponentB>(2)
-            .emplace<Transform>(500, 600).emplace<Movable>()
-            .emplace<RandomPositionTarget>()
-            .push_back(green);
+            .emplace<TestComponent2>(2);
 
-    s.run(100);
+    s.create()
+            .emplace<TestComponent1>(10)
+            .emplace<TestComponent2>(20);
 
-    std::cout << "Done" << std::endl;
+    s.run(3);
     return 0;
 }

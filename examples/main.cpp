@@ -8,11 +8,11 @@
 
 using namespace sim;
 
-struct TestComponentA {
+struct TestComponent1 {
     int a;
 };
 
-struct TestComponentB {
+struct TestComponent2 {
     int b;
 };
 
@@ -32,8 +32,8 @@ struct TestSystemB {
     }
 
     void operator()(const event::Cycle, Context& ctx) const {
-        ctx.view<TestComponentA, TestComponentB>().for_each(
-            [](const TestComponentA& a, const TestComponentB& b) {
+        ctx.view<TestComponent1, TestComponent2>().for_each(
+            [](const TestComponent1& a, const TestComponent2& b) {
                 std::cout << "Complex cycle B (" << a.a << ", " << b.b << ")" << std::endl;
             });
     }
@@ -41,21 +41,21 @@ struct TestSystemB {
 
 int main() {
     auto s = Simulation<Components<>, Systems<> >()
-            .with_components<TestComponentA, TestComponentB>()
+            .with_components<TestComponent1, TestComponent2>()
             .with_systems<TestSystemA, TestSystemB, RandomMovement, Renderer>();
 
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});
 
     s.create()
-            .emplace<TestComponentA>(5)
+            .emplace<TestComponent1>(5)
             .emplace<Transform>(500, 500).emplace<Movable>()
             .emplace<RandomPositionTarget>()
             .emplace<Sprite>(red);
 
     s.create()
-            .emplace<TestComponentA>(1)
-            .emplace<TestComponentB>(2)
+            .emplace<TestComponent1>(1)
+            .emplace<TestComponent2>(2)
             .emplace<Transform>(500, 600).emplace<Movable>()
             .emplace<RandomPositionTarget>()
             .push_back(green);

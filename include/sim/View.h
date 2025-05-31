@@ -42,9 +42,12 @@ namespace sim {
 
     class Context {
         Registry* registry_;
+        const size_t cycle_ = 0;
 
     public:
-        explicit Context(Registry* registry);
+        explicit Context(Registry* registry, size_t cycle);
+
+        [[nodiscard]] size_t cycle() const;
 
         template<typename... Cs>
         [[nodiscard]] View<Cs...> view();
@@ -103,7 +106,10 @@ namespace sim {
         return iterator(this, std::get<0>(storages_)->end());
     }
 
-    inline Context::Context(Registry* registry): registry_(registry) {}
+    inline Context::Context(Registry* registry, const size_t cycle): registry_(registry), cycle_(cycle) {}
+    inline size_t Context::cycle() const {
+        return cycle_;
+    }
 
     template<typename... Cs>
     View<Cs...> Context::view() {

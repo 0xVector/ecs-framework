@@ -51,7 +51,7 @@ namespace sim {
 
     template<typename... Cs, typename... Ss>
     void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t for_cycles) {
-        Context ctx(&registry_);
+        Context ctx(&registry_, cycle_);
         dispatch_to_all(event::SimStart{}, ctx);
         for (size_t i = 0; i < for_cycles; ++i) {
             dispatch_to_all(event::PreCycle{}, ctx);

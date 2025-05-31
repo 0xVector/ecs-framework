@@ -20,11 +20,11 @@ namespace sim {
     void Dispatcher<Ss...>::dispatch_to_all(const Event& event, Context& context) {
         std::apply([&](Ss&... system) {
             ([&] {
-                if constexpr (requires { system(event, context); }) {
-                    system(event, context);
-                }
                 if constexpr (requires { system(event); }) {
                     system(event);
+                }
+                if constexpr (requires { system(event, context); }) {
+                    system(event, context);
                 }
             }(), ...);
         }, systems_);
