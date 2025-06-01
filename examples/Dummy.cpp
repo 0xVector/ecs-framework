@@ -1,8 +1,6 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
-#include "sim/systems/Movement.h"
-#include "sim/systems/Renderer.h"
 
 using namespace sim;
 
@@ -27,8 +25,8 @@ struct TestSystemA {
         std::cout << "[A]: Simple cycle" << std::endl;
     }
 
-    void operator()(const event::Cycle, Context ctx) const {
-        ctx.view<TestComponent1>().for_each([ctx](const Entity entity, const TestComponent1& a) {
+    void operator()(const event::Cycle, Context& ctx) const {
+        ctx.view<TestComponent1>().for_each([&](const Entity entity, const TestComponent1& a) {
             std::cout << "[A]: Cycle " << ctx.cycle() << " "
                     "for entity #" << entity.id() << " "
                     "with TestComponent1(" << a.a << ")" << std::endl;
