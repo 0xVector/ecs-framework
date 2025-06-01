@@ -4,11 +4,13 @@
 #include "raylib-cpp.hpp"
 #include "sim/components/Sprite.h"
 
+static constexpr int MARGIN = 10; // Margin around the screen
+
 namespace sim {
     struct Renderer::State {
         static constexpr char TITLE[] = "Simulation Renderer";
-        static constexpr int WIDTH = 1000;
-        static constexpr int HEIGHT = 1000;
+        static constexpr int WIDTH = 1000 + 2 * MARGIN;
+        static constexpr int HEIGHT = 1000 + 2 * MARGIN;
         raylib::Window window;
 
         State() : window(WIDTH, HEIGHT, TITLE) {
@@ -23,7 +25,9 @@ namespace sim {
             }
 
             static void draw_sprite(const Transform& t, const Sprite& sprite) {
-                DrawRectangle(t.x, t.y, sprite.width, sprite.height, toRaylibColor(sprite.color));
+                const int x = t.x - sprite.width / 2 + MARGIN;
+                const int y = t.y - sprite.height / 2 + MARGIN;
+                DrawRectangle(x, y, sprite.width, sprite.height, toRaylibColor(sprite.color));
             }
         };
     }

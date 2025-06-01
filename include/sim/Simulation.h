@@ -57,6 +57,7 @@ namespace sim {
             dispatch_to_all(event::PreCycle{}, ctx);
             dispatch_to_all(event::Cycle{}, ctx);
             dispatch_to_all(event::PostCycle{}, ctx);
+            dispatch_to_all(event::Render{}, ctx);
             ++cycle_;
         }
         dispatch_to_all(event::SimEnd{}, ctx);

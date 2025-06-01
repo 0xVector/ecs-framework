@@ -83,8 +83,8 @@ namespace sim {
     private:
         template<typename T>
         static void resolve(Context& ctx) {
-            ctx.view<Transform, EntityTarget, MoveToClosestWith<T> >()
-                    .for_each([&](Entity& entity, Transform&, EntityTarget& target, MoveToClosestWith<T>&) {
+            ctx.view<Transform, EntityTarget, MoveToClosest<T> >()
+                    .for_each([&](Entity& entity, Transform&, EntityTarget& target, MoveToClosest<T>&) {
                         auto dist = [&entity](Entity& to) {
                             const auto& [x1, y1] = entity.get<Transform>();
                             const auto& [x2, y2] = to.get<Transform>();
@@ -92,12 +92,6 @@ namespace sim {
                         };
 
                         auto potential_targets = ctx.view<Transform, T>();
-                        using TT = typename decltype(potential_targets)::iterator;
-                        // TT a{};
-                        static_assert(std::input_iterator<TT>, "failed input iterator");
-                        static_assert(std::weakly_incrementable<TT>, "Failed the weakly incrementable test");
-                        static_assert(std::movable<TT>, "Failed the moveable test");
-                        static_assert(std::default_initializable<TT>, "Failed the default initializable test");
 
                         const Entity closest = std::ranges::min(potential_targets, {}, dist);
                         target.target_entity = closest.id();

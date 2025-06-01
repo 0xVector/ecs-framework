@@ -30,7 +30,7 @@ namespace sim {
             start();
         } else if constexpr (std::same_as<Event, event::SimEnd>) {
             end();
-        } else if constexpr (std::same_as<Event, event::Cycle>) {
+        } else if constexpr (std::same_as<Event, event::Render>) {
             render(context);
         }
     }

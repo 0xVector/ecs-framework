@@ -7,6 +7,7 @@ namespace sim::event {
     struct PreCycle {};
     struct Cycle {};
     struct PostCycle {};
+    struct Render {};
 }
 
 #endif //EVENTS_H

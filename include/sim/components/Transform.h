@@ -22,7 +22,7 @@ namespace sim {
     struct RandomPositionTarget {};
 
     template<typename T>
-    struct MoveToClosestWith {};
+    struct MoveToClosest {};
 }
 
 #endif //TRANSFORM_H
