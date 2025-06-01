@@ -18,7 +18,7 @@ namespace sim {
 
     public:
         void operator()(const event::Cycle, Context& ctx) {
-            ctx.view<Transform, Movable, RandomPositionTarget>().for_each([this](auto& t, auto& m, auto&) {
+            ctx.view<Transform, Movable, RandomTarget>().for_each([this](auto& t, auto& m, auto&) {
                 t.x += m.speed * dist_(rng_);
                 t.y += m.speed * dist_(rng_);
             });
@@ -35,7 +35,7 @@ namespace sim {
     public:
         void operator()(const event::Cycle, Context& ctx) {
             // Move entities with RandomPositionTarget
-            ctx.view<Transform, Movable, RandomPositionTarget>().for_each([this](auto& t, auto& m, auto&) {
+            ctx.view<Transform, Movable, RandomTarget>().for_each([this](auto& t, auto& m, auto&) {
                 t.x += m.speed * dist_(rng_);
                 t.y += m.speed * dist_(rng_);
             });
@@ -92,6 +92,10 @@ namespace sim {
                         };
 
                         auto potential_targets = ctx.view<Transform, T>();
+                        if (potential_targets.empty()) {
+                            target.target_entity = NO_ID; // No targets available
+                            return;
+                        }
 
                         const Entity closest = std::ranges::min(potential_targets, {}, dist);
                         target.target_entity = closest.id();

@@ -55,6 +55,8 @@ namespace sim {
         template<typename Component, typename... Args>
         void emplace(ConstEntity entity, Args&&... args);
 
+        void remove(ConstEntity entity);
+
         template<typename... Cs>
         [[nodiscard]] ImmutableView<Cs...> view() const;
 
@@ -130,6 +132,11 @@ namespace sim {
     void Registry::emplace(const ConstEntity entity, Args&&... args) {
         auto& storage = get_storage<Component>();
         storage.emplace(entity.id(), std::forward<Args>(args)...);
+    }
+
+    inline void Registry::remove(const ConstEntity entity) {
+        for (auto& storage: storages_)
+            storage->remove(entity.id());
     }
 
     template<typename... Cs>

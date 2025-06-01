@@ -20,6 +20,8 @@ namespace sim {
 
         void for_each(auto&& func) requires (!Imm);
 
+        [[nodiscard]] bool empty() const;
+
         template<bool Const>
         struct iterator_base;
 
@@ -49,7 +51,7 @@ namespace sim {
         using iterator_concept = std::input_iterator_tag;
 
     private:
-        using view_t = View; //std::conditional_t<Const, const View, View>;
+        using view_t = std::conditional_t<Const, const View, View>;
         using it_t = typename Storage<first_t<Cs...> >::iterator;
 
         view_t* view_;
@@ -58,7 +60,7 @@ namespace sim {
 
     public:
         iterator_base() = default;
-        explicit iterator_base(View* view, typename Storage<first_t<Cs...> >::iterator it);
+        explicit iterator_base(view_t* view, typename Storage<first_t<Cs...> >::iterator it);
 
         bool operator==(const iterator_base& other) const;
         reference operator*() const;
@@ -92,6 +94,9 @@ namespace sim {
         [[nodiscard]] ConstEntity get_entity(id_t entity_id) const;
 
         [[nodiscard]] Entity get_entity(id_t entity_id);
+
+        void remove_entity(ConstEntity entity);
+        void remove_entity(id_t entity_id);
     };
 
     // Implementation ============================================================================
@@ -112,8 +117,6 @@ namespace sim {
 
     template<bool Imm, typename... Cs>
     void View<Imm, Cs...>::for_each(auto&& func) requires (!Imm) {
-        auto b = begin();
-        auto e = end();
         for (Entity entity: *this) {
             if constexpr (requires { func(entity, entity.get<Cs>()...); })
                 std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...);
@@ -123,8 +126,13 @@ namespace sim {
     }
 
     template<bool Imm, typename... Cs>
+    bool View<Imm, Cs...>::empty() const {
+        return begin() == end();
+    }
+
+    template<bool Imm, typename... Cs>
     template<bool Const>
-    View<Imm, Cs...>::iterator_base<Const>::iterator_base(View* view, typename Storage<first_t<Cs...> >::iterator it):
+    View<Imm, Cs...>::iterator_base<Const>::iterator_base(view_t* view, typename Storage<first_t<Cs...> >::iterator it):
         view_(view), it_(it), current_(NO_ID, view->registry_) {
         advance_till_valid();
     }
@@ -216,6 +224,14 @@ namespace sim {
 
     inline Entity Context::get_entity(id_t entity_id) {
         return {entity_id, registry_};
+    }
+
+    inline void Context::remove_entity(const ConstEntity entity) {
+        registry_->remove(entity);
+    }
+
+    inline void Context::remove_entity(const id_t entity_id) {
+        remove_entity(get_entity(entity_id));
     }
 }
 #endif //VIEW_H

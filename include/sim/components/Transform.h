@@ -19,7 +19,7 @@ namespace sim {
         id_t target_entity;
     };
 
-    struct RandomPositionTarget {};
+    struct RandomTarget {};
 
     template<typename T>
     struct MoveToClosest {};

@@ -29,13 +29,15 @@ namespace sim {
 
         [[nodiscard]] size_t cycle() const;
 
-        void run(size_t for_cycles);
+        void run(size_t cycles);
 
         Entity create();
 
     private:
         template<typename Event>
         void dispatch_to_all(const Event& event, Context& ctx);
+
+        void compact_storages();
     };
 
     constexpr auto make_simulation() {
@@ -50,14 +52,15 @@ namespace sim {
     }
 
     template<typename... Cs, typename... Ss>
-    void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t for_cycles) {
+    void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t cycles) {
         Context ctx(&registry_, cycle_);
         dispatch_to_all(event::SimStart{}, ctx);
-        for (size_t i = 0; i < for_cycles; ++i) {
+        for (size_t i = 0; i < cycles; ++i) {
             dispatch_to_all(event::PreCycle{}, ctx);
             dispatch_to_all(event::Cycle{}, ctx);
             dispatch_to_all(event::PostCycle{}, ctx);
             dispatch_to_all(event::Render{}, ctx);
+            compact_storages();
             ++cycle_;
         }
         dispatch_to_all(event::SimEnd{}, ctx);
@@ -72,6 +75,11 @@ namespace sim {
     template<typename Event>
     void Simulation<Components<Cs...>, Systems<Ss...> >::dispatch_to_all(const Event& event, Context& ctx) {
         dispatcher_.template dispatch_to_all<Event>(event, ctx);
+    }
+
+    template<typename... Cs, typename... Ss>
+    void Simulation<Components<Cs...>, Systems<Ss...> >::compact_storages() {
+        (registry_.get_storage<Cs>().compact(), ...);
     }
 }
 
