@@ -1,5 +1,6 @@
 #ifndef STORAGE_H
 #define STORAGE_H
+#include <algorithm>
 #include <vector>
 #include <memory>
 #include <numeric>
@@ -60,6 +61,7 @@ namespace sim {
     private:
         void ensure_mappings(id_t entity_id, index_t index);
         static void remove_static(StorageBase* self, id_t entity_id);
+        void swap_remove_at(index_t index);
     };
 
     // Implementation ============================================================================
@@ -125,6 +127,7 @@ namespace sim {
         std::swap(id_to_index_[entity_id], id_to_index_[swapped_id]);
         std::swap(index_to_id_[index], index_to_id_[last_index]);
         storage_.pop_back();
+        index_to_id_.pop_back();
     }
 
     template<typename T>
@@ -148,8 +151,13 @@ namespace sim {
 
     // Compact the storage by removing unused indices and shifting elements
     // This invalidates all iterators and references to the storage elements
+    // It can still leave some unused indices after one sweep, if there were empty mappings at the end (TODO)
     template<typename T>
-    void Storage<T>::compact() {} // TODO
+    void Storage<T>::compact() {
+        for (index_t i = 0; i < index_to_id_.size(); ++i)
+            if (index_to_id_[i] == NO_ID)
+                swap_remove_at(i);
+    }
 
     template<typename T>
     void Storage<T>::ensure_mappings(const id_t entity_id, const index_t index) {
@@ -165,6 +173,25 @@ namespace sim {
     template<typename T>
     void Storage<T>::remove_static(StorageBase* self, const id_t entity_id) {
         static_cast<Storage*>(self)->remove(entity_id);
+    }
+
+    // Remove an index from the storage by swapping it with the last element
+    // The index will be overwritten, and the last element will be moved to the index
+    template<typename T>
+    void Storage<T>::swap_remove_at(index_t index) {
+        if (index_to_id_[index] != NO_ID)
+            throw std::runtime_error("Cannot remove an index that is not marked as unused");
+
+        const index_t last_index = storage_.size() - 1;
+        const id_t last_id = index_to_id_[last_index];
+
+        std::swap(storage_[index], storage_[last_index]);
+        std::swap(index_to_id_[index], index_to_id_[last_index]);
+        if (last_id != NO_ID)
+            id_to_index_[last_id] = index; // Update the id_to_index_ mapping
+
+        storage_.pop_back();
+        index_to_id_.pop_back();
     }
 }
 

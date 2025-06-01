@@ -11,6 +11,7 @@ namespace sim {
 
     template<typename... Cs, typename... Ss>
     class Simulation<Components<Cs...>, Systems<Ss...> > final {
+        static constexpr size_t COMPACTION_CYCLES = 100;
         Registry registry_;
         Dispatcher<Ss...> dispatcher_{};
         size_t cycle_ = 0;
@@ -79,7 +80,8 @@ namespace sim {
 
     template<typename... Cs, typename... Ss>
     void Simulation<Components<Cs...>, Systems<Ss...> >::compact_storages() {
-        (registry_.get_storage<Cs>().compact(), ...);
+        if (cycle_ % COMPACTION_CYCLES == 0)
+            (registry_.get_storage<Cs>().compact(), ...);
     }
 }
 
