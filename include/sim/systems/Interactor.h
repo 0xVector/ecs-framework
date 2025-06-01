@@ -8,7 +8,7 @@
 
 namespace sim {
     template<typename... Touchables>
-    struct TouchProcessor {
+    struct TouchableTargets {
         void operator()(const event::Cycle, Context& ctx) const {
             (process<Touchables>(ctx), ...);
         }
@@ -16,7 +16,7 @@ namespace sim {
     private:
         template<typename Touchable>
         void process(Context& ctx) const {
-            ctx.view<Transform, TouchDestroys<Touchable> >()
+            ctx.view<Transform, DestroyByTouch<Touchable> >()
                     .for_each([&](const Entity& toucher, auto& t, auto& td) {
                             const dim_t min_dist_squared = td.min_distance * td.min_distance;
                             ctx.view<Touchable>().for_each([&](Entity& touched, auto&) {

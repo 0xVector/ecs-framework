@@ -21,36 +21,49 @@ struct TestSystem {
 
 int main() {
     struct Sheep {};
+    struct Grass {};
 
     auto s = Simulation<Components<>, Systems<> >()
             .with_components<>()
             .with_systems<Movement, WorldBoundary,
-                MoveToClosestResolver<Sheep>, TouchProcessor<Sheep>,
+                FollowableTargets<Sheep, Grass>, TouchableTargets<Sheep, Grass>,
                 Renderer>();
 
+    Sprite grass(Color{60, 240, 80});
     Sprite sheep(Color{220, 210, 193});
     Sprite wolf{};
 
+    constexpr int grass_count = 2000;
     constexpr int sheep_count = 100;
-    constexpr int wolves = 10;
+    constexpr int wolves = 5;
 
     constexpr uint SEED = 42;
     std::mt19937 rng{SEED};
     std::uniform_int_distribution rand_coord{0, 1000};
-    std::uniform_int_distribution rand_speed{1, 10};
+    std::uniform_int_distribution rand_speed{1, 3};
 
+    // Grass
+    for (int i = 0; i < grass_count; ++i)
+        s.create()
+                .emplace<Grass>()
+                .emplace<Transform>(rand_coord(rng), rand_coord(rng))
+                .emplace<Sprite>(grass);
+
+    // Sheep
     for (int i = 0; i < sheep_count; ++i)
         s.create()
                 .emplace<Sheep>()
                 .emplace<Transform>(rand_coord(rng), rand_coord(rng)).emplace<Movable>(rand_speed(rng))
-                .emplace<RandomTarget>()
+                .emplace<EntityTarget>().emplace<FollowClosest<Grass> >()
+                .emplace<DestroyByTouch<Grass> >()
                 .emplace<Sprite>(sheep);
 
+    // Wolves
     for (int i = 0; i < wolves; ++i)
         s.create()
                 .emplace<Transform>(rand_coord(rng), rand_coord(rng)).emplace<Movable>(rand_speed(rng))
-                .emplace<EntityTarget>().emplace<MoveToClosest<Sheep> >()
-                .emplace<TouchDestroys<Sheep> >()
+                .emplace<EntityTarget>().emplace<FollowClosest<Sheep> >()
+                .emplace<DestroyByTouch<Sheep> >()
                 .push_back(wolf);
 
     s.run(10000);

@@ -21,7 +21,7 @@ struct TestSystem {
 int main() {
     auto s = Simulation<Components<>, Systems<TestSystem> >()
             .with_components<>()
-            .with_systems<Movement, MoveToClosestResolver<RandomTarget>, WorldBoundary, Renderer>();
+            .with_systems<Movement, FollowableTargets<RandomTarget>, WorldBoundary, Renderer>();
 
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});
@@ -43,7 +43,7 @@ int main() {
 
     s.create()
             .emplace<Transform>(500, 600).emplace<Movable>()
-            .emplace<EntityTarget>().emplace<MoveToClosest<RandomTarget> >()
+            .emplace<EntityTarget>().emplace<FollowClosest<RandomTarget> >()
             .push_back(red);
 
     s.run(10000);

@@ -75,7 +75,7 @@ namespace sim {
     };
 
     template<typename... ClosestWithTs>
-    struct MoveToClosestResolver {
+    struct FollowableTargets {
         void operator()(const event::PreCycle, Context& ctx) const {
             (resolve<ClosestWithTs>(ctx), ...);
         }
@@ -83,8 +83,8 @@ namespace sim {
     private:
         template<typename T>
         static void resolve(Context& ctx) {
-            ctx.view<Transform, EntityTarget, MoveToClosest<T> >()
-                    .for_each([&](Entity& entity, Transform&, EntityTarget& target, MoveToClosest<T>&) {
+            ctx.view<Transform, EntityTarget, FollowClosest<T> >()
+                    .for_each([&](Entity& entity, Transform&, EntityTarget& target, FollowClosest<T>&) {
                         auto dist = [&entity](Entity& to) {
                             const auto& [x1, y1] = entity.get<Transform>();
                             const auto& [x2, y2] = to.get<Transform>();

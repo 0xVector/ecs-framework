@@ -4,7 +4,7 @@
 
 namespace sim {
     template<typename Touchable>
-    struct TouchDestroys {
+    struct DestroyByTouch {
         dim_t min_distance = 5;
     };
 };
