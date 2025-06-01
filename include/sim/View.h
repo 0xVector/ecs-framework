@@ -5,39 +5,68 @@
 #include "Traits.h"
 
 namespace sim {
-    template<typename... Cs>
+    template<bool Imm, typename... Cs>
     class View {
-        const std::tuple<Storage<Cs>*...> storages_;
+        template<typename C>
+        using storage_t = std::conditional_t<Imm, const Storage<C>, Storage<C> >;
+
+        const std::tuple<storage_t<Cs>*...> storages_;
         Registry* registry_;
 
     public:
-        friend struct iterator;
+        explicit View(storage_t<Cs>*... storages, Registry* registry);
 
-        struct iterator {
-            using value_type = Entity;
-            using reference = Entity;
-            using difference_type = std::ptrdiff_t;
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
+        void for_each(auto&& func) const;
 
-        private:
-            View* view_;
-            typename Storage<first_t<Cs...> >::iterator it_;
+        void for_each(auto&& func) requires (!Imm);
 
-        public:
-            explicit iterator(View* view, typename Storage<first_t<Cs...> >::iterator it);
-            bool operator==(const iterator& other) const = default;
-            reference operator*() const;
-            iterator& operator++();
+        template<bool Const>
+        struct iterator_base;
 
-        private:
-            void advance_till_valid();
-        };
+        template<bool Const>
+        friend struct iterator_base;
 
-        explicit View(Storage<Cs>*... storages, Registry* registry);
-        void for_each(auto&& func);
-        [[nodiscard]] iterator begin();
-        [[nodiscard]] iterator end();
+        using const_iterator = iterator_base<true>;
+        using iterator = iterator_base<false>;
+
+        [[nodiscard]] const_iterator begin() const;
+        [[nodiscard]] const_iterator end() const;
+        [[nodiscard]] iterator begin() requires (!Imm);
+        [[nodiscard]] iterator end() requires (!Imm);
+    };
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    struct View<Imm, Cs...>::iterator_base {
+    private:
+        using entity_t = std::conditional_t<Const, ConstEntity, Entity>;
+
+    public:
+        using value_type = entity_t;
+        using reference = std::conditional_t<Const, const entity_t &, entity_t &>;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::input_iterator_tag;
+        using iterator_concept = std::input_iterator_tag;
+
+    private:
+        using view_t = View; //std::conditional_t<Const, const View, View>;
+        using it_t = typename Storage<first_t<Cs...> >::iterator;
+
+        view_t* view_;
+        it_t it_;
+        mutable entity_t current_;
+
+    public:
+        iterator_base() = default;
+        explicit iterator_base(View* view, typename Storage<first_t<Cs...> >::iterator it);
+
+        bool operator==(const iterator_base& other) const;
+        reference operator*() const;
+        iterator_base& operator++();
+        iterator_base operator++(int);
+
+    private:
+        void advance_till_valid();
     };
 
     class Context {
@@ -47,48 +76,33 @@ namespace sim {
     public:
         explicit Context(Registry* registry, size_t cycle);
 
+        Context(const Context&) = delete;
+        Context(Context&&) = delete;
+        Context& operator=(const Context&) = delete;
+        Context& operator=(Context&&) = delete;
+
         [[nodiscard]] size_t cycle() const;
 
         template<typename... Cs>
-        [[nodiscard]] View<Cs...> view();
+        [[nodiscard]] ImmutableView<Cs...> view() const;
+
+        template<typename... Cs>
+        [[nodiscard]] MutableView<Cs...> view();
+
+        [[nodiscard]] ConstEntity get_entity(id_t entity_id) const;
+
+        [[nodiscard]] Entity get_entity(id_t entity_id);
     };
 
     // Implementation ============================================================================
 
-    template<typename... Cs>
-    View<Cs...>::iterator::iterator(View* view, typename Storage<first_t<Cs...> >::iterator it):
-        view_(view), it_(it) {
-        advance_till_valid();
-    }
+    template<bool Imm, typename... Cs>
+    View<Imm, Cs...>::View(storage_t<Cs>*... storages, Registry* registry):
+        storages_(storages...), registry_(registry) {}
 
-    template<typename... Cs>
-    typename View<Cs...>::iterator::reference View<Cs...>::iterator::operator*() const {
-        return Entity(*it_, view_->registry_);
-    }
-
-    template<typename... Cs>
-    typename View<Cs...>::iterator& View<Cs...>::iterator::operator++() {
-        ++it_;
-        advance_till_valid();
-        return *this;
-    }
-
-    template<typename... Cs>
-    void View<Cs...>::iterator::advance_till_valid() {
-        const auto it_end = std::get<0>(view_->storages_)->end();
-        while (it_ != it_end) {
-            if ((... && std::get<Storage<Cs>*>(view_->storages_)->entity_has(*it_)))
-                break;
-            ++it_;
-        }
-    }
-
-    template<typename... Cs>
-    View<Cs...>::View(Storage<Cs>*... storages, Registry* registry): storages_(storages...), registry_(registry) {}
-
-    template<typename... Cs>
-    void View<Cs...>::for_each(auto&& func) {
-        for (Entity entity: *this) {
+    template<bool Imm, typename... Cs>
+    void View<Imm, Cs...>::for_each(auto&& func) const {
+        for (ConstEntity entity: *this) {
             if constexpr (requires { std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...); })
                 std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...);
             else
@@ -96,24 +110,112 @@ namespace sim {
         }
     }
 
-    template<typename... Cs>
-    typename View<Cs...>::iterator View<Cs...>::begin() {
+    template<bool Imm, typename... Cs>
+    void View<Imm, Cs...>::for_each(auto&& func) requires (!Imm) {
+        auto b = begin();
+        auto e = end();
+        for (Entity entity: *this) {
+            if constexpr (requires { func(entity, entity.get<Cs>()...); })
+                std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...);
+            else
+                std::apply(std::forward<decltype(func)>(func), entity.get_all<Cs...>());
+        }
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    View<Imm, Cs...>::iterator_base<Const>::iterator_base(View* view, typename Storage<first_t<Cs...> >::iterator it):
+        view_(view), it_(it), current_(NO_ID, view->registry_) {
+        advance_till_valid();
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    bool View<Imm, Cs...>::iterator_base<Const>::operator==(const iterator_base& other) const {
+        return view_ == other.view_ && it_ == other.it_;
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    typename View<Imm, Cs...>::template iterator_base<Const>::reference View<Imm, Cs...>::iterator_base<Const>
+    ::operator*() const {
+        return current_;
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    typename View<Imm, Cs...>::template iterator_base<Const>& View<Imm, Cs...>::iterator_base<Const>::operator++() {
+        ++it_;
+        advance_till_valid();
+        return *this;
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    typename View<Imm, Cs...>::template iterator_base<Const> View<Imm, Cs...>::iterator_base<Const>::operator++(int) {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    template<bool Imm, typename... Cs>
+    template<bool Const>
+    void View<Imm, Cs...>::iterator_base<Const>::advance_till_valid() {
+        const auto it_end = std::get<0>(view_->storages_)->end();
+        while (it_ != it_end) {
+            if ((... && std::get<Storage<Cs>*>(view_->storages_)->entity_has(*it_)))
+                break;
+            ++it_;
+        }
+        if (it_ != it_end) {
+            current_ = Entity(*it_, view_->registry_);
+        } else {
+            current_ = Entity(NO_ID, view_->registry_); // Invalid entity
+        }
+    }
+
+    template<bool Imm, typename... Cs>
+    typename View<Imm, Cs...>::const_iterator View<Imm, Cs...>::begin() const {
+        return const_iterator(this, std::get<0>(storages_)->begin());
+    }
+
+    template<bool Imm, typename... Cs>
+    typename View<Imm, Cs...>::const_iterator View<Imm, Cs...>::end() const {
+        return const_iterator(this, std::get<0>(storages_)->end());
+    }
+
+    template<bool Imm, typename... Cs>
+    typename View<Imm, Cs...>::iterator View<Imm, Cs...>::begin() requires (!Imm) {
         return iterator(this, std::get<0>(storages_)->begin());
     }
 
-    template<typename... Cs>
-    typename View<Cs...>::iterator View<Cs...>::end() {
+    template<bool Imm, typename... Cs>
+    typename View<Imm, Cs...>::iterator View<Imm, Cs...>::end() requires (!Imm) {
         return iterator(this, std::get<0>(storages_)->end());
     }
 
+    template<typename... Cs>
+    ImmutableView<Cs...> Context::view() const {
+        return registry_->view<Cs...>();
+    }
+
+    template<typename... Cs>
+    MutableView<Cs...> Context::view() {
+        return registry_->view<Cs...>();
+    }
+
     inline Context::Context(Registry* registry, const size_t cycle): registry_(registry), cycle_(cycle) {}
+
     inline size_t Context::cycle() const {
         return cycle_;
     }
 
-    template<typename... Cs>
-    View<Cs...> Context::view() {
-        return registry_->view<Cs...>();
+    inline ConstEntity Context::get_entity(id_t entity_id) const {
+        return {entity_id, registry_};
+    }
+
+    inline Entity Context::get_entity(id_t entity_id) {
+        return {entity_id, registry_};
     }
 }
 #endif //VIEW_H

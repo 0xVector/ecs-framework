@@ -1,6 +1,7 @@
 #ifndef REGISTRY_H
 #define REGISTRY_H
 #include "Storage.h"
+#include "View.h"
 
 namespace sim {
     template<typename... Cs>
@@ -19,55 +20,95 @@ namespace sim {
         return id;
     }
 
-    class Entity;
+    // Forward declarations and type aliases ================================================================
+    template<bool Const>
+    class EntityBase;
+
+    using Entity = EntityBase<false>;
+    using ConstEntity = EntityBase<true>;
 
     // Forward declaration (TODO)
-    template<typename... Cs>
+    template<bool Imm, typename... Cs>
     class View;
+
+    template<typename... Cs>
+    using ImmutableView = View<true, Cs...>;
+
+    template<typename... Cs>
+    using MutableView = View<false, Cs...>;
+
+    // ======================================================================================================
 
     class Registry {
         std::vector<std::unique_ptr<StorageBase> > storages_;
 
     public:
         template<typename C>
+        [[nodiscard]] const Storage<C>& get_storage() const;
+
+        template<typename C>
         [[nodiscard]] Storage<C>& get_storage();
 
         template<typename C>
-        void push_back(Entity entity, C&& component);
+        void push_back(ConstEntity entity, C&& component);
 
         template<typename Component, typename... Args>
-        void emplace(Entity entity, Args&&... args);
+        void emplace(ConstEntity entity, Args&&... args);
 
         template<typename... Cs>
-        [[nodiscard]] View<Cs...> view();
+        [[nodiscard]] ImmutableView<Cs...> view() const;
+
+        template<typename... Cs>
+        [[nodiscard]] MutableView<Cs...> view();
     };
 
-    class [[nodiscard]] Entity {
+    template<bool Const>
+    class [[nodiscard]] EntityBase {
         id_t id_;
         Registry* registry_;
 
     public:
-        Entity(id_t id, Registry* registry);
+        EntityBase() = default;
+        EntityBase(id_t id, Registry* registry);
+
+        operator EntityBase<true>() const; // NOLINT
 
         [[nodiscard]] id_t id() const;
 
         template<typename Component>
         [[nodiscard]] bool has() const;
 
+        [[nodiscard]] bool operator==(const EntityBase&) const = default;
+
         template<typename Component>
-        [[nodiscard]] Component& get();
+        [[nodiscard]] const Component& get() const;
+
+        template<typename Component>
+        [[nodiscard]] Component& get() requires(!Const);
 
         template<typename... Components>
-        [[nodiscard]] std::tuple<Components &...> get_all();
+        [[nodiscard]] std::tuple<const Components &...> get_all() const;
+
+        template<typename... Components>
+        [[nodiscard]] std::tuple<Components &...> get_all() requires(!Const);
 
         template<typename C>
-        Entity& push_back(C&& component);
+        EntityBase& push_back(C&& component);
 
         template<typename Component, typename... Args>
-        Entity& emplace(Args&&... args);
+        EntityBase& emplace(Args&&... args);
     };
 
     // Implementation ============================================================================
+
+    template<typename C>
+    const Storage<C>& Registry::get_storage() const {
+        auto id = get_component_id<C>();
+        if (id >= storages_.size()) { // TODO: only in debug
+            throw std::out_of_range("No storage for component type");
+        }
+        return static_cast<const Storage<C> &>(*storages_[id]);
+    }
 
     template<typename C>
     Storage<C>& Registry::get_storage() {
@@ -80,51 +121,80 @@ namespace sim {
     }
 
     template<typename Component>
-    void Registry::push_back(const Entity entity, Component&& component) {
+    void Registry::push_back(const ConstEntity entity, Component&& component) {
         auto& storage = get_storage<std::decay_t<Component> >();
         storage.push_back(entity.id(), std::forward<Component>(component));
     }
 
     template<typename Component, typename... Args>
-    void Registry::emplace(const Entity entity, Args&&... args) {
+    void Registry::emplace(const ConstEntity entity, Args&&... args) {
         auto& storage = get_storage<Component>();
         storage.emplace(entity.id(), std::forward<Args>(args)...);
     }
 
     template<typename... Cs>
-    View<Cs...> Registry::view() {
-        return View<Cs...>(&get_storage<Cs>()..., this);
+    ImmutableView<Cs...> Registry::view() const {
+        return ImmutableView<Cs...>(&get_storage<Cs>()..., this);
     }
 
-    inline Entity::Entity(const id_t id, Registry* registry): id_(id), registry_(registry) {}
+    template<typename... Cs>
+    MutableView<Cs...> Registry::view() {
+        return MutableView<Cs...>(&get_storage<Cs>()..., this);
+    }
 
-    inline id_t Entity::id() const {
+    template<bool Const>
+    EntityBase<Const>::EntityBase(const id_t id, Registry* registry): id_(id), registry_(registry) {}
+
+    template<bool Const>
+    EntityBase<Const>::operator EntityBase<true>() const {
+        return {id_, registry_};
+    }
+
+    template<bool Const>
+    id_t EntityBase<Const>::id() const {
         return id_;
     }
 
+    template<bool Const>
     template<typename Component>
-    bool Entity::has() const {
+    bool EntityBase<Const>::has() const {
         return registry_->get_storage<Component>().entity_has(id_);
     }
 
+    template<bool Const>
     template<typename Component>
-    Component& Entity::get() {
+    const Component& EntityBase<Const>::get() const {
         return registry_->get_storage<Component>().get(id_);
     }
 
+    template<bool Const>
+    template<typename Component>
+    Component& EntityBase<Const>::get() requires(!Const) {
+        return registry_->get_storage<Component>().get(id_);
+    }
+
+    template<bool Const>
     template<typename... Components>
-    std::tuple<Components &...> Entity::get_all() {
+    std::tuple<const Components &...> EntityBase<Const>::get_all() const {
         return {get<Components>()...};
     }
 
-    template<typename Component>
-    Entity& Entity::push_back(Component&& component) {
-        registry_->push_back(*this, std::forward<Component>(component));
+    template<bool Const>
+    template<typename... Components>
+    std::tuple<Components &...> EntityBase<Const>::get_all() requires(!Const) {
+        return {get<Components>()...};
+    }
+
+    template<bool Const>
+    template<typename C>
+    EntityBase<Const>& EntityBase<Const>::push_back(C&& component) {
+        registry_->push_back(*this, std::forward<C>(component));
         return *this;
     }
 
+    template<bool Const>
     template<typename Component, typename... Args>
-    Entity& Entity::emplace(Args&&... args) {
+    EntityBase<Const>& EntityBase<Const>::emplace(Args&&... args) {
         registry_->emplace<Component>(*this, std::forward<Args>(args)...);
         return *this;
     }

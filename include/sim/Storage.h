@@ -19,6 +19,8 @@ namespace sim {
         std::vector<T> storage_; // Dense
 
     public:
+        using iterator = std::vector<id_t>::const_iterator;
+
         [[nodiscard]] size_t size() const;
 
         [[nodiscard]] bool entity_has(id_t entity_id) const;
@@ -36,24 +38,6 @@ namespace sim {
 
         void for_each(auto&& func);
 
-        struct iterator {
-            using value_type = id_t;
-            using reference = id_t;
-            using difference_type = std::ptrdiff_t;
-            using iterator_category = std::forward_iterator_tag;
-            using iterator_concept = std::forward_iterator_tag;
-
-        private:
-            const Storage* storage_;
-            index_t index_;
-
-        public:
-            iterator(const Storage* storage, index_t index);
-            bool operator==(const iterator& other) const = default;
-            reference operator*() const;
-            iterator& operator++();
-        };
-
         [[nodiscard]] iterator begin() const;
 
         [[nodiscard]] iterator end() const;
@@ -63,20 +47,6 @@ namespace sim {
     };
 
     // Implementation ============================================================================
-
-    template<typename T>
-    Storage<T>::iterator::iterator(const Storage* storage, const index_t index): storage_(storage), index_(index) {}
-
-    template<typename T>
-    typename Storage<T>::iterator::reference Storage<T>::iterator::operator*() const {
-        return storage_->index_to_id_[index_];
-    }
-
-    template<typename T>
-    typename Storage<T>::iterator& Storage<T>::iterator::operator++() {
-        ++index_;
-        return *this;
-    }
 
     template<typename T>
     size_t Storage<T>::size() const {
@@ -138,13 +108,12 @@ namespace sim {
 
     template<typename T>
     typename Storage<T>::iterator Storage<T>::begin() const {
-        return {this, 0};
+        return index_to_id_.begin();
     }
 
     template<typename T>
     typename Storage<T>::iterator Storage<T>::end() const {
-        const auto end_index = static_cast<index_t>(storage_.size()); // TODO: some check
-        return {this, end_index};
+        return index_to_id_.end();
     }
 
     template<typename T>
