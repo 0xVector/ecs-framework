@@ -20,13 +20,15 @@ struct TestSystem {
 };
 
 int main() {
-    struct Sheep {};
     struct Grass {};
+    struct Sheep {};
+    struct Wolf {};
 
     auto s = Simulation<Components<>, Systems<> >()
             .with_components<>()
             .with_systems<Movement, WorldBoundary,
-                FollowableTargets<Sheep, Grass>, TouchableTargets<Sheep, Grass>,
+                TargetResolver<Sheep, Grass, Wolf>,
+                TouchableTargets<Sheep, Grass>,
                 Renderer>();
 
     Sprite grass(Color{60, 240, 80});
@@ -54,15 +56,19 @@ int main() {
         s.create()
                 .emplace<Sheep>()
                 .emplace<Transform>(rand_coord(rng), rand_coord(rng)).emplace<Movable>(rand_speed(rng))
-                .emplace<EntityTarget>().emplace<FollowClosest<Grass> >()
+                .emplace<Target>()
+                .emplace<FollowClosest<Grass> >()
+                .emplace<AvoidClosest<Wolf> >()
                 .emplace<DestroyByTouch<Grass> >()
                 .emplace<Sprite>(sheep);
 
     // Wolves
     for (int i = 0; i < wolves; ++i)
         s.create()
+                .emplace<Wolf>()
                 .emplace<Transform>(rand_coord(rng), rand_coord(rng)).emplace<Movable>(rand_speed(rng))
-                .emplace<EntityTarget>().emplace<FollowClosest<Sheep> >()
+                .emplace<Target>()
+                .emplace<FollowClosest<Sheep> >()
                 .emplace<DestroyByTouch<Sheep> >()
                 .push_back(wolf);
 

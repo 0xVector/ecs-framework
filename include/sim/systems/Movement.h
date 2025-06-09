@@ -7,98 +7,142 @@
 #include "sim/View.h"
 #include "sim/components/Transform.h"
 #include "sim/Types.h"
+#include "sim/components/Targets.h"
 
 namespace sim {
-    struct RandomMovement {
-        static constexpr uint SEED = 42; // Fixed seed for reproducibility
-
-    private:
-        std::mt19937 rng_{SEED};
-        std::uniform_int_distribution<dim_t> dist_{-1, 1};
-
-    public:
-        void operator()(const event::Cycle, Context& ctx) {
-            ctx.view<Transform, Movable, RandomTarget>().for_each([this](auto& t, auto& m, auto&) {
-                t.x += m.speed * dist_(rng_);
-                t.y += m.speed * dist_(rng_);
-            });
-        }
-    };
-
     struct Movement {
+        void operator()(const event::Cycle, Context& ctx) const {
+            ctx.view<Transform, Movable, Target>()
+                    .for_each([&](Transform& t, const Movable& m, const Target& to) {
+                        const auto dx = to.x - t.x;
+                        const auto dy = to.y - t.y;
+
+                        // Move towards the target but clamp to not overshoot the target
+                        if (dx != 0) {
+                            t.x += m.speed * (dx > 0 ? 1 : -1);
+                            if ((dx > 0 && t.x > to.x) || (dx < 0 && t.x < to.x))
+                                t.x = to.x; // Clamp to target
+                        }
+
+                        if (dy != 0) {
+                            t.y += m.speed * (dy > 0 ? 1 : -1);
+                            if ((dy > 0 && t.y > to.y) || (dy < 0 && t.y < to.y))
+                                t.y = to.y; // Clamp to target
+                        }
+                    });
+        }
+    };
+
+    template<typename... DynamicTs>
+    struct TargetResolver {
         static constexpr uint SEED = 42; // Fixed seed for reproducibility
+        static constexpr dim_t RANDOM_MOVE_RANGE = 10; // Range for random movement
 
     private:
         std::mt19937 rng_{SEED};
         std::uniform_int_distribution<dim_t> dist_{-1, 1};
 
     public:
-        void operator()(const event::Cycle, Context& ctx) {
-            // Move entities with RandomPositionTarget
-            ctx.view<Transform, Movable, RandomTarget>().for_each([this](auto& t, auto& m, auto&) {
-                t.x += m.speed * dist_(rng_);
-                t.y += m.speed * dist_(rng_);
-            });
+        void operator()(const event::SimStart, Context& ctx) const {}
 
-            // Move entities with PositionTarget
-            ctx.view<Transform, Movable, PositionTarget>().for_each([](auto& t, auto& m, auto& p) {
-                move_towards(t, Transform(p.x, p.y), m);
-            });
+        void operator()(const event::PreCycle, Context& ctx) {
+            resolve_random(ctx);
+            resolve_avoid_entity(ctx);
+            resolve_target_entity(ctx);
 
-            // Move entities with EntityTarget
-            ctx.view<Transform, Movable, EntityTarget>().for_each([&](auto& t, auto& m, auto& target) {
-                const Entity target_entity = ctx.get_entity(target.target_entity);
-                if (target_entity.has<Transform>()) {
-                    move_towards(t, target_entity.get<Transform>(), m);
-                }
-            });
+            // Resolve dynamic targets
+            (resolve_avoid_dynamic<DynamicTs>(ctx), ...);
+            (resolve_follow_dynamic<DynamicTs>(ctx), ...);
         }
 
     private:
-        static void move_towards(Transform& t, const Transform& target, const Movable& m) {
-            const auto dx = target.x - t.x;
-            const auto dy = target.y - t.y;
-
-            // Move towards the target but clamp to not overshoot the target
-            if (dx != 0) {
-                t.x += m.speed * (dx > 0 ? 1 : -1);
-                if ((dx > 0 && t.x > target.x) || (dx < 0 && t.x < target.x))
-                    t.x = target.x; // Clamp to target
-            }
-
-            if (dy != 0) {
-                t.y += m.speed * (dy > 0 ? 1 : -1);
-                if ((dy > 0 && t.y > target.y) || (dy < 0 && t.y < target.y))
-                    t.y = target.y; // Clamp to target
-            }
-        }
-    };
-
-    template<typename... ClosestWithTs>
-    struct FollowableTargets {
-        void operator()(const event::PreCycle, Context& ctx) const {
-            (resolve<ClosestWithTs>(ctx), ...);
+        void resolve_random(Context& ctx) {
+            ctx.view<Transform, Target, RandomTarget>()
+                    .for_each([this](const Transform& t, Target& to, RandomTarget&) {
+                        to.x = t.x + dist_(rng_) * RANDOM_MOVE_RANGE;
+                        to.y = t.y + dist_(rng_) * RANDOM_MOVE_RANGE;
+                    });
         }
 
-    private:
+        static void resolve_target_entity(Context& ctx) {
+            ctx.view<Transform, Target, StaticEntityTarget>()
+                    .for_each([&](const Transform&, Target& to, const StaticEntityTarget& target) {
+                        const auto target_entity = ctx.get_entity(target.target_entity);
+                        if (!target_entity.has<Transform>()) return;
+
+                        const auto [x, y] = target_entity.get<Transform>();
+                        to.x = x;
+                        to.y = y;
+                    });
+        }
+
+        static void resolve_avoid_entity(Context& ctx) {
+            ctx.view<Transform, Target, StaticEntityAvoid>()
+                    .for_each([&](const Transform& t, Target& to, const StaticEntityAvoid& target) {
+                        const auto target_entity = ctx.get_entity(target.target_entity);
+                        if (!target_entity.has<Transform>()) return;
+
+                        const auto [x, y] = target_entity.get<Transform>();
+                        // Move away from the target
+                        to.x = (x < t.x) ? 1 : -1; // Move away in x direction
+                        to.y = (y < t.y) ? 1 : -1; // Move away in y direction
+                    });
+        }
+
         template<typename T>
-        static void resolve(Context& ctx) {
-            ctx.view<Transform, EntityTarget, FollowClosest<T> >()
-                    .for_each([&](Entity& entity, Transform&, EntityTarget& target, FollowClosest<T>&) {
-                        auto dist = [&entity](Entity& to) {
-                            const auto& [x1, y1] = entity.get<Transform>();
-                            const auto& [x2, y2] = to.get<Transform>();
-                            return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
+        static void resolve_follow_dynamic(Context& ctx) {
+            ctx.view<Transform, Target, FollowClosest<T> >()
+                    .for_each([&](const Entity& self, Transform& t, Target& to, FollowClosest<T>&) {
+                        // Dist metric
+                        auto dist = [&](const Entity& to_entity) {
+                            if (self.id() == to_entity.id())
+                                return std::numeric_limits<dim_t>::max(); // Ignore self
+
+                            const auto& [s_x, s_y] = t;
+                            const auto& [to_x, to_y] = to_entity.get<Transform>();
+                            return (s_x - to_x) * (s_x - to_x) + (s_y - to_y) * (s_y - to_y);
                         };
 
                         auto potential_targets = ctx.view<Transform, T>();
                         if (potential_targets.empty()) {
-                            target.target_entity = NO_ID; // No targets available
+                            return;
+                            to.x = t.x; // No targets to follow, stay in place
+                            to.y = t.y;
+                        }
+
+                        const Entity closest = std::ranges::min(potential_targets, {}, dist);
+                        const auto [x, y] = closest.get<Transform>();
+                        to.x = x;
+                        to.y = y;
+                    });
+        }
+
+        template<typename T>
+        static void resolve_avoid_dynamic(Context& ctx) {
+            ctx.view<Transform, Target, AvoidClosest<T> >()
+                    .for_each([&](const Entity& self, Transform& t, Target& to, AvoidClosest<T>&) {
+                        // Dist metric
+                        auto dist = [&](const Entity& to_entity) {
+                            if (self.id() == to_entity.id())
+                                return std::numeric_limits<dim_t>::max(); // Ignore self
+
+                            const auto& [s_x, s_y] = t;
+                            const auto& [to_x, to_y] = to_entity.get<Transform>();
+                            return (s_x - to_x) * (s_x - to_x) + (s_y - to_y) * (s_y - to_y);
+                        };
+
+                        auto potential_targets = ctx.view<Transform, T>();
+                        if (potential_targets.empty()) {
+                            to.x = t.x; // No targets to follow, stay in place
+                            to.y = t.y;
                             return;
                         }
 
                         const Entity closest = std::ranges::min(potential_targets, {}, dist);
-                        target.target_entity = closest.id();
+                        const auto [x, y] = closest.get<Transform>();
+                        // Move away from the target
+                        to.x = x < t.x ? t.x + 1 : t.x - 1; // Move away in x direction
+                        to.y = y < t.y ? t.y + 1 : t.y - 1; // Move away in y direction
                     });
         }
     };

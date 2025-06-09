@@ -21,29 +21,32 @@ struct TestSystem {
 int main() {
     auto s = Simulation<Components<>, Systems<TestSystem> >()
             .with_components<>()
-            .with_systems<Movement, FollowableTargets<RandomTarget>, WorldBoundary, Renderer>();
+            .with_systems<Movement, TargetResolver<RandomTarget>, WorldBoundary, Renderer>();
 
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});
 
+    const auto top_left = s.create().emplace<Transform>(0, 0);
+    const auto bottom_right = s.create().emplace<Transform>(1000, 1000);
+
     s.create()
             .emplace<Transform>(500, 500).emplace<Movable>(10)
-            .emplace<RandomTarget>()
+            .emplace<Target>().emplace<RandomTarget>()
             .emplace<Sprite>(green);
 
     s.create()
             .emplace<Transform>(500, 500).emplace<Movable>(5)
-            .emplace<PositionTarget>(1000, 1000)
+            .emplace<Target>().emplace<StaticEntityTarget>(bottom_right.id())
             .emplace<Sprite>(green);
 
     s.create()
-        .emplace<Transform>(500, 500).emplace<Movable>(5)
-        .emplace<PositionTarget>(0, 0)
-        .emplace<Sprite>(green);
+            .emplace<Transform>(500, 500).emplace<Movable>(5)
+            .emplace<Target>().emplace<StaticEntityTarget>(top_left.id())
+            .emplace<Sprite>(green);
 
     s.create()
             .emplace<Transform>(500, 600).emplace<Movable>()
-            .emplace<EntityTarget>().emplace<FollowClosest<RandomTarget> >()
+            .emplace<Target>().emplace<FollowClosest<RandomTarget> >()
             .push_back(red);
 
     s.run(10000);

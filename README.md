@@ -88,3 +88,4 @@ A step of the simulation when all Entities and Elements are processed by firing 
 - spatial indexing
 - unpack on entity that unpacks the components
 - foreach function arg through concepts
+- auto add/ensure Target when a Target provider is added
