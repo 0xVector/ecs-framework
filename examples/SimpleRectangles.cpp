@@ -10,7 +10,7 @@
 using namespace sim;
 
 struct TestSystem {
-    void operator()(const event::Cycle, Context& ctx) const {
+    void operator()(const event::Cycle, Context ctx) const {
         ctx.view<Transform, Movable>().for_each([](const Entity e, auto& t, auto& m) {
             std::cout << "Entity #" << e.id() << " at (" << t.x << ", " << t.y << ") with speed " << m.speed <<
                     std::endl;

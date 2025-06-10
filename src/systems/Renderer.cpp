@@ -43,7 +43,7 @@ namespace sim {
         wait();
     }
 
-    void Renderer::render(Context& context) const {
+    void Renderer::render(Context context) const {
         state_->window.BeginDrawing();
 
         state_->window.ClearBackground(raylib::RAYWHITE);

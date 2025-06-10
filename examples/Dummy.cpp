@@ -25,7 +25,7 @@ struct TestSystemA {
         std::cout << "[A]: Simple cycle" << std::endl;
     }
 
-    void operator()(const event::Cycle, Context& ctx) const {
+    void operator()(const event::Cycle, Context ctx) const {
         ctx.view<TestComponent1>().for_each([&](const Entity entity, const TestComponent1& a) {
             std::cout << "[A]: Cycle " << ctx.cycle() << " "
                     "for entity #" << entity.id() << " "
@@ -35,7 +35,7 @@ struct TestSystemA {
 };
 
 struct TestSystemB {
-    void operator()(const event::Cycle, Context& ctx) const {
+    void operator()(const event::Cycle, Context ctx) const {
         for (Entity entity: ctx.view<TestComponent1, TestComponent2>()) {
             std::cout << "[B]: Cycle " << ctx.cycle() << " "
                     "for entity #" << entity.id() << " "

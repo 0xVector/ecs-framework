@@ -13,19 +13,19 @@ namespace sim {
         ~Renderer();
 
         template<typename Event>
-        void operator()(const Event& event, Context& context);
+        void operator()(const Event& event, Context context);
 
         void start();
 
         void end() const;
 
-        void render(Context& context) const;
+        void render(Context context) const;
 
         void wait() const;
     };
 
     template<typename Event>
-    void Renderer::operator()(const Event&, Context& context) {
+    void Renderer::operator()(const Event&, const Context context) {
         if constexpr (std::same_as<Event, event::SimStart>) {
             start();
         } else if constexpr (std::same_as<Event, event::SimEnd>) {

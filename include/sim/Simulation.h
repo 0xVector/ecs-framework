@@ -54,9 +54,11 @@ namespace sim {
 
     template<typename... Cs, typename... Ss>
     void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t cycles) {
-        Context ctx(&registry_, cycle_);
-        dispatch_to_all(event::SimStart{}, ctx);
+        Context start_ctx(&registry_, cycle_);
+        dispatch_to_all(event::SimStart{}, start_ctx);
+
         for (size_t i = 0; i < cycles; ++i) {
+            Context ctx(&registry_, cycle_);
             dispatch_to_all(event::PreCycle{}, ctx);
             dispatch_to_all(event::Cycle{}, ctx);
             dispatch_to_all(event::PostCycle{}, ctx);
@@ -64,7 +66,9 @@ namespace sim {
             compact_storages();
             ++cycle_;
         }
-        dispatch_to_all(event::SimEnd{}, ctx);
+
+        Context end_ctx(&registry_, cycle_);
+        dispatch_to_all(event::SimEnd{}, end_ctx);
     }
 
     template<typename... Cs, typename... Ss>

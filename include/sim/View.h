@@ -72,14 +72,14 @@ namespace sim {
     };
 
     class Context {
-        Registry* registry_;
         const size_t cycle_ = 0;
+        Registry* registry_;
 
     public:
         explicit Context(Registry* registry, size_t cycle);
 
-        Context(const Context&) = delete;
-        Context(Context&&) = delete;
+        Context(const Context&) = default;
+        Context(Context&&) = default;
         Context& operator=(const Context&) = delete;
         Context& operator=(Context&&) = delete;
 
@@ -212,7 +212,7 @@ namespace sim {
         return registry_->view<Cs...>();
     }
 
-    inline Context::Context(Registry* registry, const size_t cycle): registry_(registry), cycle_(cycle) {}
+    inline Context::Context(Registry* registry, const size_t cycle): cycle_(cycle), registry_(registry) {}
 
     inline size_t Context::cycle() const {
         return cycle_;

@@ -12,7 +12,7 @@ namespace sim {
         static constexpr dim_t MAX_X = 1000;
         static constexpr dim_t MAX_Y = 1000;
 
-        void operator()(const event::PostCycle, Context& ctx) const {
+        void operator()(const event::PostCycle, Context ctx) const {
             ctx.view<Transform>().for_each([](auto& t) {
                 if (t.x < MIN_X) t.x = MIN_X;
                 if (t.y < MIN_Y) t.y = MIN_Y;

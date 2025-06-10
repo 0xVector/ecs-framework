@@ -11,7 +11,7 @@
 
 namespace sim {
     struct Movement {
-        void operator()(const event::Cycle, Context& ctx) const {
+        void operator()(const event::Cycle, Context ctx) const {
             ctx.view<Transform, Movable, Target>()
                     .for_each([&](Transform& t, const Movable& m, Target& to) {
                         const auto dx = to.x - t.x;
@@ -47,8 +47,6 @@ namespace sim {
         std::uniform_int_distribution<dim_t> dist_{-1, 1};
 
     public:
-        void operator()(const event::SimStart, Context& ctx) const {}
-
         void operator()(const event::PreCycle, Context& ctx) {
             resolve_random(ctx);
             resolve_avoid_entity(ctx);
@@ -60,7 +58,7 @@ namespace sim {
         }
 
     private:
-        void resolve_random(Context& ctx) {
+        void resolve_random(Context ctx) {
             ctx.view<Transform, Target, RandomTarget>()
                     .for_each([this](const Transform& t, Target& to, RandomTarget&) {
                         to.x = t.x + dist_(rng_) * RANDOM_MOVE_RANGE;
@@ -68,7 +66,7 @@ namespace sim {
                     });
         }
 
-        static void resolve_target_entity(Context& ctx) {
+        static void resolve_target_entity(Context ctx) {
             ctx.view<Transform, Target, StaticEntityTarget>()
                     .for_each([&](const Transform&, Target& to, const StaticEntityTarget& target) {
                         const auto target_entity = ctx.get_entity(target.target_entity);
@@ -80,7 +78,7 @@ namespace sim {
                     });
         }
 
-        static void resolve_avoid_entity(Context& ctx) {
+        static void resolve_avoid_entity(Context ctx) {
             ctx.view<Transform, Target, StaticEntityAvoid>()
                     .for_each([&](const Transform& t, Target& to, const StaticEntityAvoid& target) {
                         const auto target_entity = ctx.get_entity(target.target_entity);
@@ -94,7 +92,7 @@ namespace sim {
         }
 
         template<typename T>
-        static void resolve_follow_dynamic(Context& ctx) {
+        static void resolve_follow_dynamic(Context ctx) {
             ctx.view<Transform, Target, FollowClosest<T> >()
                     .for_each([&](const Entity& self, Transform& t, Target& to, FollowClosest<T>&) {
                         // Dist metric
@@ -122,7 +120,7 @@ namespace sim {
         }
 
         template<typename T>
-        static void resolve_avoid_dynamic(Context& ctx) {
+        static void resolve_avoid_dynamic(Context ctx) {
             ctx.view<Transform, Target, AvoidClosest<T> >()
                     .for_each([&](const Entity& self, Transform& t, Target& to, AvoidClosest<T>&) {
                         // Dist metric
