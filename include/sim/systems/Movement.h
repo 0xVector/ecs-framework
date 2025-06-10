@@ -13,7 +13,7 @@ namespace sim {
     struct Movement {
         void operator()(const event::Cycle, Context& ctx) const {
             ctx.view<Transform, Movable, Target>()
-                    .for_each([&](Transform& t, const Movable& m, const Target& to) {
+                    .for_each([&](Transform& t, const Movable& m, Target& to) {
                         const auto dx = to.x - t.x;
                         const auto dy = to.y - t.y;
 
@@ -29,6 +29,10 @@ namespace sim {
                             if ((dy > 0 && t.y > to.y) || (dy < 0 && t.y < to.y))
                                 t.y = to.y; // Clamp to target
                         }
+
+                        // Reset target to self
+                        to.x = t.x;
+                        to.y = t.y;
                     });
         }
     };
