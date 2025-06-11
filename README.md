@@ -1,91 +1,112 @@
-# Project description
+# ecs-sim-framework
+
+A simple ECS (Entity-Component-System) simulation framework in C++.
 
 ## Structure
 
-An ecosystem consists of **Entities** and an **Environment** and it is run by providing a start **State**.
+As in any ECS framework, there are three main elements:
+- **Entity**: A unique object in the simulation
+- **Component**: A piece of data that describes an aspect of an entity
+- **System**: A callable that operates on entities with specific components
 
 ### Entity
 
-Entity represents a living part of the ecosystem.
+An entity can be uniquely identified by an ID. Entity can have arbitrary components attached to it.
+When working with entities, you receive an `Entity` handle from the framework which provides some nice utilities.
 
-Every entity has:
-- Type
-- Position (2D coordinates)
-- Properties
-- Behaviour
+### Components
 
-Every entity can be:
-- created
-- destroyed
+Components are structures holding data. They don't contain any logic.
+To create a component, you usually just define a simple struct. Aggregate types are ideal for this.
+A component instance then can be added to an entity.
 
-#### Properties
+### Systems
 
-Properties are extra data attached to an Entity. It represents the state of the
-individual instance.
+Systems are callables that handle events in the simulation and operate on entities with specific components.
+To create a system, you define a struct with overloaded `operator()` accepting the appropriate event as the first argument.
+Systems are instantiated once at the start of the simulation and kept throughout the simulation lifecycle.
+They can thus maintain state, even though it is recommended to keep most of the state in components.
+Event handlers in systems can optionally receive a `Context` object as the second argument, which provides access to the simulation context and utilities.
 
-#### Behaviour
+### Events
 
-Behaviour is a set of Actions taken by the Entity in key steps of the simulation.
-Each action is associated to (one or multiple) Events when it executes.
-It is thus a mapping Event -> Action.
+Events are used to trigger systems at specific stages of the simulation.
+They are just simple tag types that don't carry any data (for now).
+The most useful event is probably `Cycle` which is fired in every simulation cycle.
 
-##### Event
+### Views
 
-Events are fired in key steps of the simulation Cycle.
+The `Context` object received by event handlers in systems provides access to `View`s.
+A `View` is a lightweight view over entities that have a specific set of components.
+It provides a `for_each` method but also satisfies the range concept, so you can use it in range-based for loops and even in the standard library algorithms.
 
-They are:
-- create - fired after creating the Entity
-- destroy - fired before destroying the Entity
-- cycle - fired at the start of each Cycle
-- ~~start - fired once at the start of the first Cycle of the simulation~~
-- ~~end - fired at the end of the last Cycle of the simulation~~
+### Library
 
-##### Action
+The framework is included with a small library ([sim/lib/](include/sim/lib/) in the sim::lib namespace)
+of Components and Systems that can be used in a wide range of simulations.
+Examples include `Transform` component for position, a `Movement` system and a `Render` system.
 
-Action is an atomic functionality of an Entity.
-It is represented by a functor.
+## Examples
 
-### Environment
+Check the [examples/](examples/) directory for some example simulations.
+The basic usage is fully shown in [examples/Dummy.cpp](examples/Dummy.cpp).
 
-Environment comprises the space for the simulation to play out in.
+### Creating a Component
 
-Environment has:
-- dimensions
-- Elements
+```cpp
+struct ExampleComponent {
+    int value = 5;
+};
+```
 
-#### Element
+### Creating a System
 
-Element is a non-active part of the environment.
+```cpp
+struct ExampleSystem {
+    void operator()(sim::event::Cycle, sim::Context ctx) {
+        ctx.view<ExampleComponent>().for_each([](Entity& entity, ExampleComponent& component) {
+            component.value += 1;
+        });
+    }
+};
+```
 
-### State
+### Creating a Simulation
 
-State is the full configuration of the simulation in a single Cycle.
-You need a starting State from which the simulation starts. When the simulation ends, the state at the final
-cycle is stored. The simulation progression is stored as a sequence of States.
+```cpp
+Simulation<ExampleSystem>() s; // Specify the system types to be used
 
-A State consists of:
-- the data of each individual Entity
-- the data of each individual Element
-- the Cycle number
+// or using the fluent interface
+auto s = Simulation<>()
+    .with_systems<ExampleSystem>();
+```
 
-## Simulation
+### Creating an Entity
 
-Simulation consists of discrete Cycles representing the smallest steps of time.
+```cpp
+Entity e = s.create()
+    .emplace<ExampleComponent>(1); // Pass constructor arguments to the component
+        
+ExampleComponent c;
+s.create()
+    .push_back(c); // Push back an existing component instance
+```
 
-### Cycle
+### Running the Simulation
 
-A step of the simulation when all Entities and Elements are processed by firing Events.
+```cpp
+s.run(100); // Run the simulation for 100 cycles
+```
 
+## Acknowledgements
 
-# Todo
+This framework uses [raylib](https://www.raylib.com/) and [raylib-cpp](https://github.com/RobLoach/raylib-cpp) for the included renderer.
 
-- foreach views
-- renderer separate?
-- raylib global namespace problems
+## Todo
+
 - way to make an entity type (set of components) easily: create gets the types, then is enforced that all components are emplaced before start 
-- pick smallest storage in view foreach
+- pick the smallest storage in view foreach
 - storage specialization for empty types
 - spatial indexing
-- unpack on entity that unpacks the components
 - foreach function arg through concepts
 - auto add/ensure Target when a Target provider is added
