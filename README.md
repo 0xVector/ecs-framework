@@ -98,6 +98,17 @@ s.create()
 s.run(100); // Run the simulation for 100 cycles
 ```
 
+## Docs
+
+For doxygen documentation, build the `doc` CMake target.
+Docs [will be available](docs/html/index.html) in the [docs/html/](docs/html) directory.
+
+## Build and Usage
+
+To build the framework, you need to have CMake installed.
+To try out the examples, just run the appropriate target.
+The framework is almost completely header-only, but the renderer is built as a static library (in [src](src/)) to not pollute the global namespace with raylib symbols.
+
 ## Acknowledgements
 
 This framework uses [raylib](https://www.raylib.com/) and [raylib-cpp](https://github.com/RobLoach/raylib-cpp) for the included renderer.
