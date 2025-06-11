@@ -24,12 +24,13 @@ int main() {
     struct Sheep {};
     struct Wolf {};
 
-    auto s = Simulation<Components<>, Systems<> >()
-            .with_components<>()
-            .with_systems<Movement, WorldBoundary,
-                TargetResolver<Sheep, Grass, Wolf>,
-                TouchableTargets<Sheep, Grass>,
-                Renderer>();
+    auto s = Simulation<
+        Movement, WorldBoundary,
+        TargetResolver<Sheep, Grass, Wolf>,
+        TouchableTargets<Sheep, Grass>,
+        Renderer
+    >();
+
 
     Sprite grass(Color{60, 240, 80});
     Sprite sheep(Color{220, 210, 193});

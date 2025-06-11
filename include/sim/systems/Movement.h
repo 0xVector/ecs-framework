@@ -43,7 +43,7 @@ namespace sim {
         static constexpr dim_t RANDOM_MOVE_RANGE = 10; // Range for random movement
 
     private:
-        std::mt19937 rng_{SEED};
+        std::mt19937 rng_{SEED}; // NOLINT
         std::uniform_int_distribution<dim_t> dist_{-1, 1};
 
     public:

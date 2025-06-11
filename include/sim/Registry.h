@@ -1,12 +1,8 @@
 #ifndef REGISTRY_H
 #define REGISTRY_H
 #include "Storage.h"
-#include "View.h"
 
 namespace sim {
-    template<typename... Cs>
-    class Components {};
-
     using component_id_t = size_t;
 
     inline component_id_t generate_component_id() {
@@ -62,6 +58,8 @@ namespace sim {
 
         template<typename... Cs>
         [[nodiscard]] MutableView<Cs...> view();
+
+        void compact_all();
     };
 
     template<bool Const>
@@ -134,8 +132,8 @@ namespace sim {
         storage.emplace(entity.id(), std::forward<Args>(args)...);
     }
 
-    inline void Registry::remove(const ConstEntity entity) {
-        for (auto& storage: storages_)
+    inline void Registry::remove(const ConstEntity entity) { // NOLINT
+        for (auto&& storage: storages_)
             storage->remove(entity.id());
     }
 
@@ -147,6 +145,11 @@ namespace sim {
     template<typename... Cs>
     MutableView<Cs...> Registry::view() {
         return MutableView<Cs...>(&get_storage<Cs>()..., this);
+    }
+
+    inline void Registry::compact_all() { // NOLINT
+        for (auto&& storage : storages_)
+            storage->compact();
     }
 
     template<bool Const>

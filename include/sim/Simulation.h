@@ -6,11 +6,8 @@
 #include "Dispatcher.h"
 
 namespace sim {
-    template<typename Components, typename Systems>
-    class Simulation;
-
-    template<typename... Cs, typename... Ss>
-    class Simulation<Components<Cs...>, Systems<Ss...> > final {
+    template<typename... Ss>
+    class Simulation final {
         static constexpr size_t COMPACTION_CYCLES = 100;
         Registry registry_;
         Dispatcher<Ss...> dispatcher_{};
@@ -18,14 +15,9 @@ namespace sim {
         id_t entity_id_ = 0;
 
     public:
-        template<typename... C>
-        constexpr auto with_components() const {
-            return Simulation<Components<Cs..., C...>, Systems<Ss...> >{};
-        }
-
         template<typename... S>
         constexpr auto with_systems() const {
-            return Simulation<Components<Cs...>, Systems<Ss..., S...> >{};
+            return Simulation<Ss..., S...>{};
         }
 
         [[nodiscard]] size_t cycle() const;
@@ -41,19 +33,15 @@ namespace sim {
         void compact_storages();
     };
 
-    constexpr auto make_simulation() {
-        return Simulation<Components<>, Systems<> >();
-    }
-
     // Implementation ============================================================================
 
-    template<typename... Cs, typename... Ss>
-    size_t Simulation<Components<Cs...>, Systems<Ss...> >::cycle() const {
+    template<typename... Ss>
+    size_t Simulation<Ss...>::cycle() const {
         return cycle_;
     }
 
-    template<typename... Cs, typename... Ss>
-    void Simulation<Components<Cs...>, Systems<Ss...> >::run(const size_t cycles) {
+    template<typename... Ss>
+    void Simulation<Ss...>::run(const size_t cycles) {
         Context start_ctx(&registry_, cycle_);
         dispatch_to_all(event::SimStart{}, start_ctx);
 
@@ -71,21 +59,21 @@ namespace sim {
         dispatch_to_all(event::SimEnd{}, end_ctx);
     }
 
-    template<typename... Cs, typename... Ss>
-    Entity Simulation<Components<Cs...>, Systems<Ss...> >::create() {
+    template<typename... Ss>
+    Entity Simulation<Ss...>::create() {
         return {entity_id_++, &registry_};
     }
 
-    template<typename... Cs, typename... Ss>
+    template<typename... Ss>
     template<typename Event>
-    void Simulation<Components<Cs...>, Systems<Ss...> >::dispatch_to_all(const Event& event, Context& ctx) {
+    void Simulation<Ss...>::dispatch_to_all(const Event& event, Context& ctx) {
         dispatcher_.template dispatch_to_all<Event>(event, ctx);
     }
 
-    template<typename... Cs, typename... Ss>
-    void Simulation<Components<Cs...>, Systems<Ss...> >::compact_storages() {
+    template<typename... Ss>
+    void Simulation<Ss...>::compact_storages() {
         if (cycle_ % COMPACTION_CYCLES == 0)
-            (registry_.get_storage<Cs>().compact(), ...);
+            registry_.compact_all();
     }
 }
 

@@ -4,15 +4,15 @@
 
 using namespace sim;
 
-struct TestComponent1 {
+struct Component1 {
     int a;
 };
 
-struct TestComponent2 {
+struct Component2 {
     int b;
 };
 
-struct TestSystemA {
+struct SystemA {
     void operator()(const event::SimStart) const {
         std::cout << "System A starting" << std::endl;
     }
@@ -26,7 +26,7 @@ struct TestSystemA {
     }
 
     void operator()(const event::Cycle, Context ctx) const {
-        ctx.view<TestComponent1>().for_each([&](const Entity entity, const TestComponent1& a) {
+        ctx.view<Component1>().for_each([&](const Entity entity, const Component1& a) {
             std::cout << "[A]: Cycle " << ctx.cycle() << " "
                     "for entity #" << entity.id() << " "
                     "with TestComponent1(" << a.a << ")" << std::endl;
@@ -34,31 +34,30 @@ struct TestSystemA {
     }
 };
 
-struct TestSystemB {
+struct SystemB {
     void operator()(const event::Cycle, Context ctx) const {
-        for (Entity entity: ctx.view<TestComponent1, TestComponent2>()) {
+        for (Entity entity: ctx.view<Component1, Component2>()) {
             std::cout << "[B]: Cycle " << ctx.cycle() << " "
                     "for entity #" << entity.id() << " "
-                    "with TestComponent1(" << entity.get<TestComponent1>().a << ") "
-                    "and TestComponent2(" << entity.get<TestComponent2>().b << ")" << std::endl;
+                    "with TestComponent1(" << entity.get<Component1>().a << ") "
+                    "and TestComponent2(" << entity.get<Component2>().b << ")" << std::endl;
         }
     }
 };
 
 int main() {
-    auto s = Simulation<Components<TestComponent1>, Systems<> >()
-            .with_components<TestComponent2>()
-            .with_systems<TestSystemA, TestSystemB>();
+    auto s = Simulation<SystemA>()
+            .with_systems<SystemB>();
 
     s.create()
-            .emplace<TestComponent1>(1);
+            .emplace<Component1>(1);
 
     s.create()
-            .emplace<TestComponent2>(2);
+            .emplace<Component2>(2);
 
     s.create()
-            .emplace<TestComponent1>(10)
-            .emplace<TestComponent2>(20);
+            .emplace<Component1>(10)
+            .emplace<Component2>(20);
 
     s.run(3);
     return 0;

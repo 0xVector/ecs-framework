@@ -19,9 +19,9 @@ struct TestSystem {
 };
 
 int main() {
-    auto s = Simulation<Components<>, Systems<TestSystem> >()
-            .with_components<>()
-            .with_systems<Movement, TargetResolver<RandomTarget>, WorldBoundary, Renderer>();
+    auto s = Simulation<TestSystem>()
+            .with_systems<Movement, TargetResolver<RandomTarget> >()
+            .with_systems<WorldBoundary, Renderer>();
 
     Sprite red(Color{255, 0, 0, 255});
     Sprite green(Color{0, 255, 0, 255});

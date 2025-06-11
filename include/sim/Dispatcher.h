@@ -4,9 +4,6 @@
 
 namespace sim {
     template<typename... Ss>
-    class Systems {};
-
-    template<typename... Ss>
     class Dispatcher {
         std::tuple<Ss...> systems_;
 

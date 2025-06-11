@@ -9,14 +9,10 @@
 
 namespace sim {
     class StorageBase {
-        using remover_t = void(*)(StorageBase* self, id_t id);
-        remover_t remover_;
-
     public:
-        void remove(const id_t entity_id) { remover_(this, entity_id); }
-
-    protected:
-        explicit StorageBase(const remover_t remover): remover_(remover) {}
+        virtual ~StorageBase() = default;
+        virtual void remove(id_t entity_id) = 0;
+        virtual void compact() = 0;
     };
 
     template<typename T>
@@ -31,7 +27,7 @@ namespace sim {
     public:
         using iterator = std::vector<id_t>::const_iterator;
 
-        explicit Storage();
+        explicit Storage() = default;
 
         [[nodiscard]] size_t size() const;
 
@@ -46,7 +42,7 @@ namespace sim {
         template<typename... Args>
         void emplace(id_t entity_id, Args&&... args);
 
-        void remove(id_t entity_id);
+        void remove(id_t entity_id) override;
 
         void remove_unsafe(id_t entity_id);
 
@@ -56,18 +52,14 @@ namespace sim {
 
         [[nodiscard]] iterator end() const;
 
-        void compact();
+        void compact() override;
 
     private:
         void ensure_mappings(id_t entity_id, index_t index);
-        static void remove_static(StorageBase* self, id_t entity_id);
         void swap_remove_at(index_t index);
     };
 
     // Implementation ============================================================================
-
-    template<typename T>
-    Storage<T>::Storage(): StorageBase(remove_static) {}
 
     template<typename T>
     size_t Storage<T>::size() const {
@@ -108,7 +100,8 @@ namespace sim {
     }
 
     // Remove the entity from the storage, but do not compact it
-    // This doesn't remove the component, but marks it as removed
+    // This doesn't completely the component, but marks it as removed
+    // Doesn't invalidate iterators or references to the storage elements
     template<typename T>
     void Storage<T>::remove(const id_t entity_id) {
         if (!entity_has(entity_id)) return; // TODO: check instead?
@@ -168,11 +161,6 @@ namespace sim {
         if (index >= index_to_id_.size())
             index_to_id_.resize(index + 1, NO_ID);
         index_to_id_[index] = entity_id;
-    }
-
-    template<typename T>
-    void Storage<T>::remove_static(StorageBase* self, const id_t entity_id) {
-        static_cast<Storage*>(self)->remove(entity_id);
     }
 
     // Remove an index from the storage by swapping it with the last element
