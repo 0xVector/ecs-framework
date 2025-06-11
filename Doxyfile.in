@@ -1,0 +1,7 @@
+PROJECT_NAME           = @PROJECT_NAME@
+INPUT                  = @CMAKE_SOURCE_DIR@/include/sim
+OUTPUT_DIRECTORY       = @CMAKE_SOURCE_DIR@/docs
+GENERATE_LATEX         = NO
+QUIET                  = YES
+HTML_EXTRA_STYLESHEET = @DOXYGEN_AWESOME_DIR@/doxygen-awesome.css
+HTML_EXTRA_FILES      = @DOXYGEN_AWESOME_DIR@/doxygen-awesome-darkmode-toggle.js
