@@ -5,6 +5,9 @@
 #include "Traits.h"
 
 namespace sim {
+    /// @brief A lightweight view of entities with specific components.
+    /// @tparam Imm Whether the view is immutable (true) or mutable (false).
+    /// @tparam Cs The component types to include in the view.
     template<bool Imm, typename... Cs>
     class View {
         template<typename C>
@@ -14,12 +17,25 @@ namespace sim {
         Registry* registry_;
 
     public:
+        /// @brief Constructs a view with the given storages and registry.
+        /// @param storages The storages containing the components of the view.
+        /// @param registry A pointer to the registry managing the entities.
         explicit View(storage_t<Cs>*... storages, Registry* registry);
 
-        void for_each(auto&& func) const;
+        /// @brief Calls the given callable for each entity in the view.
+        /// @details The callable should accept all the components in the view as references to const.
+        /// It can also optionally accept the entity itself as the first argument.
+        /// @param callable The callable to call for each entity.
+        void for_each(auto&& callable) const;
 
-        void for_each(auto&& func) requires (!Imm);
+        /// @brief Calls the given callable for each entity in the view.
+        /// @details The callable should accept all the components in the view as arguments, and can modify them.
+        /// It can also optionally accept the entity itself as the first argument.
+        /// @param callable The callable to call for each entity.
+        void for_each(auto&& callable) requires (!Imm);
 
+        /// @brief Checks if the view is empty.
+        /// @return Whether the view contains any entities.
         [[nodiscard]] bool empty() const;
 
         template<bool Const>
@@ -28,15 +44,31 @@ namespace sim {
         template<bool Const>
         friend struct iterator_base;
 
+        /// @brief A constant iterator for the view.
         using const_iterator = iterator_base<true>;
+        /// @brief A mutable iterator for the view.
         using iterator = iterator_base<false>;
 
+        /// @brief Returns a constant iterator to the beginning of the view.
+        /// @return A constant iterator to the first entity in the view.
         [[nodiscard]] const_iterator begin() const;
+
+        /// @brief Returns a constant iterator to the end of the view.
+        /// @return A constant iterator to the end of the view.
         [[nodiscard]] const_iterator end() const;
+
+        /// @brief Returns a mutable iterator to the beginning of the view.
+        /// @return A mutable iterator to the first entity in the view.
         [[nodiscard]] iterator begin() requires (!Imm);
+
+        /// @brief Returns a mutable iterator to the end of the view.
+        /// @return A mutable iterator to the end of the view.
         [[nodiscard]] iterator end() requires (!Imm);
     };
 
+    /// @brief View iterator base class.
+    /// @tparam Imm Whether the view is immutable (true) or mutable (false).
+    /// @tparam Cs The component types in the view.
     template<bool Imm, typename... Cs>
     template<bool Const>
     struct View<Imm, Cs...>::iterator_base {
@@ -58,23 +90,41 @@ namespace sim {
         it_t it_;
 
     public:
+        /// @brief The default constructor creates an invalid iterator.
         iterator_base() = default;
+
+        /// @brief Constructs an iterator for the given view and storage iterator.
         explicit iterator_base(view_t* view, typename Storage<first_t<Cs...> >::iterator it);
 
+        /// @brief Checks if this iterator is equal to another iterator.
+        /// @param other The other iterator to compare with.
+        /// @return Whether the two iterators are equal.
         bool operator==(const iterator_base& other) const;
-        reference operator*() const;
+
+        /// @brief Dereferences the iterator to get the current entity.
+        /// @return A reference to the current entity.
+        [[nodiscard]] reference operator*() const;
+
+        /// @brief Pre-increments the iterator to the next entity.
+        /// @return A reference to this iterator after incrementing.
         iterator_base& operator++();
+
+        /// @brief Post-increments the iterator to the next entity.
+        /// @return A copy of this iterator before incrementing.
         iterator_base operator++(int);
 
     private:
+        // Advances the iterator until it points to a valid entity.
         void advance_till_valid();
     };
 
+    /// @brief Provides the context of the current simulation cycle and allows access to entities and views.
     class Context {
         const size_t cycle_ = 0;
         Registry* registry_;
 
     public:
+        /// @brief Constructs a context for the given registry and cycle.
         explicit Context(Registry* registry, size_t cycle);
 
         Context(const Context&) = default;
@@ -82,19 +132,36 @@ namespace sim {
         Context& operator=(const Context&) = delete;
         Context& operator=(Context&&) = delete;
 
+        /// @brief Returns the current simulation cycle.
+        /// @return The current cycle number.
         [[nodiscard]] size_t cycle() const;
 
+        /// @brief Returns an immutable view of entities with the specified components.
+        /// @tparam Cs The component types to include in the view.
+        /// @return An immutable view of entities with the specified components.
         template<typename... Cs>
         [[nodiscard]] ImmutableView<Cs...> view() const;
 
+        /// @brief Returns a mutable view of entities with the specified components.
+        /// @tparam Cs The component types to include in the view.
+        /// @return A mutable view of entities with the specified components.
         template<typename... Cs>
         [[nodiscard]] MutableView<Cs...> view();
 
+        /// @brief Gets an immutable Entity handle by its ID.
+        /// @param entity_id The ID of the entity to retrieve.
+        /// @return A ConstEntity with the specified ID.
         [[nodiscard]] ConstEntity get_entity(id_t entity_id) const;
 
+        /// @brief Gets a mutable Entity handle by its ID.
+        /// @param entity_id The ID of the entity to retrieve.
+        /// @return An Entity with the specified ID.
         [[nodiscard]] Entity get_entity(id_t entity_id);
 
+        /// @brief Removes an entity from the registry.
         void remove_entity(ConstEntity entity);
+
+        /// @brief Removes an entity from the registry by its ID.
         void remove_entity(id_t entity_id);
     };
 
@@ -105,22 +172,22 @@ namespace sim {
         storages_(storages...), registry_(registry) {}
 
     template<bool Imm, typename... Cs>
-    void View<Imm, Cs...>::for_each(auto&& func) const {
+    void View<Imm, Cs...>::for_each(auto&& callable) const {
         for (ConstEntity entity: *this) {
-            if constexpr (requires { std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...); })
-                std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...);
+            if constexpr (requires { std::forward<decltype(callable)>(callable)(entity, entity.get<Cs>()...); })
+                std::forward<decltype(callable)>(callable)(entity, entity.get<Cs>()...);
             else
-                std::apply(std::forward<decltype(func)>(func), entity.get_all<Cs...>());
+                std::apply(std::forward<decltype(callable)>(callable), entity.get_all<Cs...>());
         }
     }
 
     template<bool Imm, typename... Cs>
-    void View<Imm, Cs...>::for_each(auto&& func) requires (!Imm) {
+    void View<Imm, Cs...>::for_each(auto&& callable) requires (!Imm) {
         for (Entity entity: *this) {
-            if constexpr (requires { func(entity, entity.get<Cs>()...); })
-                std::forward<decltype(func)>(func)(entity, entity.get<Cs>()...);
+            if constexpr (requires { callable(entity, entity.get<Cs>()...); })
+                std::forward<decltype(callable)>(callable)(entity, entity.get<Cs>()...);
             else
-                std::apply(std::forward<decltype(func)>(func), entity.get_all<Cs...>());
+                std::apply(std::forward<decltype(callable)>(callable), entity.get_all<Cs...>());
         }
     }
 

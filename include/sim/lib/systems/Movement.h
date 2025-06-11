@@ -9,7 +9,9 @@
 #include "sim/lib/components/Targets.h"
 
 namespace sim::lib {
+    /// @brief System add simple movement mechanics. Entities to move must have `Movable` and `Target` components.
     struct Movement {
+        /// @brief Event handler for moving entities towards their targets.
         void operator()(const event::Cycle, Context ctx) const {
             ctx.view<Transform, Movable, Target>()
                     .for_each([&](Transform& t, const Movable& m, Target& to) {
@@ -36,6 +38,10 @@ namespace sim::lib {
         }
     };
 
+    /// @brief System to resolve targets for entities. It can handle static and dynamic targets.
+    /// @details This system resolves targets in the following order, from least to most important: random, avoidance, following.
+    /// Dynamic targets are of higher priority than static targets.
+    /// @tparam DynamicTs Types of components that will be checked for dynamic target resolution. Only entities with one of these components will be considered for dynamic target resolution.
     template<typename... DynamicTs>
     struct TargetResolver {
         static constexpr uint SEED = 42; // Fixed seed for reproducibility
@@ -46,7 +52,8 @@ namespace sim::lib {
         std::uniform_int_distribution<dim_t> dist_{-1, 1};
 
     public:
-        void operator()(const event::PreCycle, Context& ctx) {
+        /// @brief Event handler for resolving targets for entities.
+        void operator()(const event::PreCycle, const Context ctx) {
             resolve_random(ctx);
             resolve_avoid_entity(ctx);
             resolve_target_entity(ctx);

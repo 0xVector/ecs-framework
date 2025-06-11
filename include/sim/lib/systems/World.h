@@ -5,11 +5,12 @@
 #include "sim/lib/components/Transform.h"
 
 namespace sim::lib {
+    /// @brief A system that enforces world boundaries for entities with Transform components.
     struct WorldBoundary {
-        static constexpr dim_t MIN_X = 0;
-        static constexpr dim_t MIN_Y = 0;
-        static constexpr dim_t MAX_X = 1000;
-        static constexpr dim_t MAX_Y = 1000;
+        static constexpr dim_t MIN_X = 0; // Minimum X coordinate
+        static constexpr dim_t MIN_Y = 0; // Minimum Y coordinate
+        static constexpr dim_t MAX_X = 1000; // Maximum X coordinate
+        static constexpr dim_t MAX_Y = 1000; // Maximum Y coordinate
 
         void operator()(const event::PostCycle, Context ctx) const {
             ctx.view<Transform>().for_each([](auto& t) {

@@ -9,6 +9,6 @@ namespace sim::lib {
         const dim_t dy = a.y - b.y;
         return dx * dx + dy * dy;
     }
-} // namespace sim
+}
 
 #endif //TRANSFORMUTILS_H

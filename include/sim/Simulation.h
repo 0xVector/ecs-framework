@@ -5,7 +5,11 @@
 #include "Storage.h"
 #include "Dispatcher.h"
 
+/// @brief The main namespace for the simulation framework.
 namespace sim {
+
+    /// @brief The main simulation class that manages the lifecycle of the simulation.
+    /// @tparam Ss The systems that will be used in the simulation.
     template<typename... Ss>
     class Simulation final {
         static constexpr size_t COMPACTION_CYCLES = 100;
@@ -15,15 +19,27 @@ namespace sim {
         id_t entity_id_ = 0;
 
     public:
+        /// @brief Default constructor for the Simulation class.
+        explicit Simulation() = default;
+
+        /// @brief A fluent interface to add systems to the simulation.
+        /// @tparam S The system types to add.
+        /// @return A new Simulation instance with the added systems.
         template<typename... S>
         constexpr auto with_systems() const {
             return Simulation<Ss..., S...>{};
         }
 
+        /// @brief Returns the current simulation cycle.
+        /// @return The current cycle number.
         [[nodiscard]] size_t cycle() const;
 
+        /// @brief Runs the simulation for a specified number of cycles.
+        /// @param cycles The number of cycles to run the simulation.
         void run(size_t cycles);
 
+        /// @brief Creates a new entity in the simulation.
+        /// @return A new Entity object representing the created entity.
         Entity create();
 
     private:

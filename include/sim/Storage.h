@@ -8,13 +8,22 @@
 #include "Types.h"
 
 namespace sim {
+    /// @brief Base class for storage of components.
     class StorageBase {
     public:
         virtual ~StorageBase() = default;
+
+        /// @brief Remove an entity from the storage.
+        /// This doesn't compact the storage, but marks the entity as removed.
+        /// @param entity_id The ID of the entity to remove.
         virtual void remove(id_t entity_id) = 0;
+
+        /// @brief Compact the storage, invalidating all iterators and references.
         virtual void compact() = 0;
     };
 
+    /// @brief Storage for components of type T.
+    /// @tparam T The type of the component to store.
     template<typename T>
     class Storage final : public StorageBase {
         using index_t = uint16_t; // Index type for storage
@@ -25,31 +34,58 @@ namespace sim {
         std::vector<T> storage_; // Dense
 
     public:
+        /// @brief Storage iterator type.
         using iterator = std::vector<id_t>::const_iterator;
 
+        /// @brief Default constructor.
         explicit Storage() = default;
 
+        /// @brief Get the size of the storage.
+        /// @return The number of components in the storage.
         [[nodiscard]] size_t size() const;
 
+        /// @brief Check if the storage contains a component for the given entity ID.
+        /// @param entity_id The ID of the entity to check.
+        /// @return Whether the storage contains a component for the given entity ID.
         [[nodiscard]] bool entity_has(id_t entity_id) const;
 
+        /// @brief Get a reference to the component for the given entity ID.
+        /// @throws std::out_of_range if the entity ID is not valid.
+        /// @param id The ID of the entity to get the component for.
+        /// @return A reference to the component for the given entity ID.
         auto&& get(this auto&& self, id_t id);
 
+        /// @brief Push a component to the storage for the given entity ID.
+        /// @param entity_id The ID of the entity to push the component for.
+        /// @param component The component to push.
         void push_back(id_t entity_id, const T& component);
 
         void push_back(id_t entity_id, T&& component);
 
+        /// @brief Emplace a component to the storage for the given entity ID.
+        /// @tparam Args The types of the arguments to forward to the component constructor.
+        /// @param entity_id The ID of the entity to emplace the component for.
+        /// @param args The arguments to forward to the component constructor.
         template<typename... Args>
         void emplace(id_t entity_id, Args&&... args);
 
         void remove(id_t entity_id) override;
 
+        /// @brief Remove an entity from the storage by swapping it with the last element and compacting the storage.
+        /// Invalidates iterators and references to the storage elements.
+        /// @param entity_id The ID of the entity to remove.
         void remove_unsafe(id_t entity_id);
 
-        void for_each(auto&& func);
+        /// @brief Call a callable on each component in the storage.
+        /// @param callable The callable to call on each component.
+        void for_each(auto&& callable);
 
+        /// @brief Get an iterator to the beginning of the storage.
+        /// @return An iterator to the beginning of the storage.
         [[nodiscard]] iterator begin() const;
 
+        /// @brief Get an iterator to the end of the storage.
+        /// @return An iterator to the end of the storage.
         [[nodiscard]] iterator end() const;
 
         void compact() override;
@@ -124,11 +160,11 @@ namespace sim {
     }
 
     template<typename T>
-    void Storage<T>::for_each(auto&& func) { // TODO: through ranges natively
+    void Storage<T>::for_each(auto&& callable) { // TODO: through ranges natively
         for (size_t i = 0; i < storage_.size(); ++i) {
             const id_t id = index_to_id_[i];
             T& item = storage_[i];
-            func(id, item);
+            callable(id, item);
         }
     }
 

@@ -4,6 +4,8 @@
 #include "sim/Simulation.h"
 
 namespace sim::lib {
+    /// @brief A simple renderer that renders the simulation state.
+    /// @details Uses PIMP to forward the calls to an implementation.
     class Renderer {
         struct State;
         std::unique_ptr<State> state_;

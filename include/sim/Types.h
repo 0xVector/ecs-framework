@@ -2,9 +2,11 @@
 #define TYPES_H
 
 namespace sim {
-    using id_t = uint16_t; // Entity ID type
+    /// @brief Entity ID type
+    using id_t = uint16_t;
 
-    constexpr id_t NO_ID = std::numeric_limits<id_t>::max(); // Sentinel value for no ID
+    /// @brief Sentinel value for no ID
+    constexpr id_t NO_ID = std::numeric_limits<id_t>::max();
 }
 
 #endif //TYPES_H

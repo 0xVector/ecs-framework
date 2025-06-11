@@ -3,6 +3,7 @@
 #include "Storage.h"
 
 namespace sim {
+    /// @brief Unique identifier for a component type.
     using component_id_t = size_t;
 
     inline component_id_t generate_component_id() {
@@ -20,81 +21,144 @@ namespace sim {
     template<bool Const>
     class EntityBase;
 
+    /// @brief A mutable entity handle.
     using Entity = EntityBase<false>;
+
+    /// @brief An immutable entity handle.
     using ConstEntity = EntityBase<true>;
 
     // Forward declaration (TODO)
     template<bool Imm, typename... Cs>
     class View;
 
+    /// @brief An immutable view over a set of components.
+    /// @tparam Cs Component types to include in the view.
     template<typename... Cs>
     using ImmutableView = View<true, Cs...>;
 
+    /// @brief A mutable view over a set of components.
+    /// @tparam Cs Component types to include in the view.
     template<typename... Cs>
     using MutableView = View<false, Cs...>;
 
     // ======================================================================================================
 
+    /// @brief A registry that manages entities and their components.
     class Registry {
         std::vector<std::unique_ptr<StorageBase> > storages_;
 
     public:
+        /// @brief Gets the storage for a specific component type.
+        /// @tparam C The component type.
+        /// @return A const reference to the storage for the component type.
         template<typename C>
         [[nodiscard]] const Storage<C>& get_storage() const;
 
+        /// @brief Gets the storage for a specific component type.
+        /// @tparam C The component type.
+        /// @return A mutable reference to the storage for the component type.
         template<typename C>
         [[nodiscard]] Storage<C>& get_storage();
 
+        /// @brief Pushes a component to an entity.
+        /// @tparam C The component type.
+        /// @param entity The entity to which the component is added.
+        /// @param component The component to add.
         template<typename C>
         void push_back(ConstEntity entity, C&& component);
 
+        /// @brief Emplaces a component to an entity.
+        /// @tparam Component The component type.
+        /// @tparam Args The types of arguments to construct the component.
+        /// @param entity The entity to which the component is added.
+        /// @param args The arguments to construct the component.
         template<typename Component, typename... Args>
         void emplace(ConstEntity entity, Args&&... args);
 
+        /// @brief Removes all components from an entity.
+        /// @param entity The entity from which components are removed.
         void remove(ConstEntity entity);
 
+        /// @brief Creates an immutable view over a set of components.
+        /// @tparam Cs The component types to include in the view.
+        /// @return An immutable view over the specified component types.
         template<typename... Cs>
         [[nodiscard]] ImmutableView<Cs...> view() const;
 
+        /// @brief Creates a mutable view over a set of components.
+        /// @tparam Cs The component types to include in the view.
+        /// @return A mutable view over the specified component types.
         template<typename... Cs>
         [[nodiscard]] MutableView<Cs...> view();
 
+        /// @brief Compacts all storages, removing gaps in the entity IDs. Invalidates all iterators and references.
         void compact_all();
     };
 
+    /// @brief The base class for entity handles, providing access to the entity's ID and its components.
+    /// @tparam Const If true, the entity handle is immutable; otherwise, it is mutable.
     template<bool Const>
     class [[nodiscard]] EntityBase {
         id_t id_;
         Registry* registry_;
 
     public:
-        EntityBase() = default;
+        /// @brief Constructs an EntityBase with a specific ID and registry.
         EntityBase(id_t id, Registry* registry);
 
-        operator EntityBase<true>() const; // NOLINT
+        /// @brief Converts this mutable entity handle to an immutable entity handle.
+        [[nodiscard]] operator EntityBase<true>() const; // NOLINT
 
+        /// @brief Gets the ID of the entity.
+        /// @return The ID of the entity.
         [[nodiscard]] id_t id() const;
 
+        /// @brief Checks if the entity has a specific component.
+        /// @tparam Component The component type to check for.
+        /// @return True if the entity has the component, false otherwise.
         template<typename Component>
         [[nodiscard]] bool has() const;
 
+        /// @brief Checks if two entities are equal.
+        /// @return Whether the two entities are equal.
         [[nodiscard]] bool operator==(const EntityBase&) const = default;
 
+        /// @brief Gets a specific component from the entity.
+        /// @tparam Component The component type to get.
+        /// @return A const reference to the component.
         template<typename Component>
         [[nodiscard]] const Component& get() const;
 
+        /// @brief Gets a specific component from the entity.
+        /// @tparam Component The component type to get.
+        /// @return A mutable reference to the component.
         template<typename Component>
         [[nodiscard]] Component& get() requires(!Const);
 
+        /// @brief Gets all components of specified types from the entity. Useful for structured bindings.
+        /// @tparam Components The component types to get.
+        /// @return A tuple containing const references to the components.
         template<typename... Components>
         [[nodiscard]] std::tuple<const Components &...> get_all() const;
 
+        /// @brief Gets all components of specified types from the entity. Useful for structured bindings.
+        /// @tparam Components The component types to get.
+        /// @return A tuple containing mutable references to the components.
         template<typename... Components>
         [[nodiscard]] std::tuple<Components &...> get_all() requires(!Const);
 
+        /// @brief Pushes a component to the entity.
+        /// @tparam C The component type.
+        /// @param component The component to add.
+        /// @return A reference to this entity handle, allowing for method chaining.
         template<typename C>
         EntityBase& push_back(C&& component);
 
+        /// @brief Emplaces a component to the entity.
+        /// @tparam Component The component type.
+        /// @tparam Args The types of arguments to construct the component.
+        /// @param args The arguments to construct the component.
+        /// @return A reference to this entity handle, allowing for method chaining.
         template<typename Component, typename... Args>
         EntityBase& emplace(Args&&... args);
     };
