@@ -45,7 +45,7 @@ namespace sim {
 
     public:
         using value_type = entity_t;
-        using reference = std::conditional_t<Const, const entity_t &, entity_t &>;
+        using reference = entity_t;
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::input_iterator_tag;
         using iterator_concept = std::input_iterator_tag;
@@ -56,7 +56,6 @@ namespace sim {
 
         view_t* view_;
         it_t it_;
-        mutable entity_t current_;
 
     public:
         iterator_base() = default;
@@ -133,7 +132,7 @@ namespace sim {
     template<bool Imm, typename... Cs>
     template<bool Const>
     View<Imm, Cs...>::iterator_base<Const>::iterator_base(view_t* view, typename Storage<first_t<Cs...> >::iterator it):
-        view_(view), it_(it), current_(NO_ID, view->registry_) {
+        view_(view), it_(it) {
         advance_till_valid();
     }
 
@@ -147,7 +146,7 @@ namespace sim {
     template<bool Const>
     typename View<Imm, Cs...>::template iterator_base<Const>::reference View<Imm, Cs...>::iterator_base<Const>
     ::operator*() const {
-        return current_;
+        return Entity(*it_, view_->registry_);
     }
 
     template<bool Imm, typename... Cs>
@@ -174,11 +173,6 @@ namespace sim {
             if ((... && std::get<Storage<Cs>*>(view_->storages_)->entity_has(*it_)))
                 break;
             ++it_;
-        }
-        if (it_ != it_end) {
-            current_ = Entity(*it_, view_->registry_);
-        } else {
-            current_ = Entity(NO_ID, view_->registry_); // Invalid entity
         }
     }
 
@@ -226,7 +220,7 @@ namespace sim {
         return {entity_id, registry_};
     }
 
-    inline void Context::remove_entity(const ConstEntity entity) {
+    inline void Context::remove_entity(const ConstEntity entity) { // NOLINT
         registry_->remove(entity);
     }
 
