@@ -1,11 +1,10 @@
 #ifndef WORLD_H
 #define WORLD_H
 #include "sim/Event.h"
-#include "sim/Types.h"
 #include "sim/View.h"
-#include "sim/components/Transform.h"
+#include "sim/lib/components/Transform.h"
 
-namespace sim {
+namespace sim::lib {
     struct WorldBoundary {
         static constexpr dim_t MIN_X = 0;
         static constexpr dim_t MIN_Y = 0;

@@ -1,13 +1,15 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
-#include "sim/components/Sprite.h"
-#include "sim/components/Transform.h"
-#include "sim/systems/Movement.h"
-#include "sim/systems/Renderer.h"
-#include "sim/systems/World.h"
+#include "sim/lib/components/Sprite.h"
+#include "sim/lib/components/Transform.h"
+#include "sim/lib/systems/Interactor.h"
+#include "sim/lib/systems/Movement.h"
+#include "sim/lib/systems/Renderer.h"
+#include "sim/lib/systems/World.h"
 
 using namespace sim;
+using namespace sim::lib;
 
 struct TestSystem {
     void operator()(const event::Cycle, Context ctx) const {

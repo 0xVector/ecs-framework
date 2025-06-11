@@ -1,8 +1,8 @@
 #ifndef TARGETS_H
 #define TARGETS_H
-#include "sim/Types.h"
+#include "sim/lib/components/Transform.h"
 
-namespace sim {
+namespace sim::lib {
     // The actual move target
     struct Target {
         dim_t x = 0, y = 0;

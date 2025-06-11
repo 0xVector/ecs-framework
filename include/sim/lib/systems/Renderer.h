@@ -3,7 +3,7 @@
 #include <memory>
 #include "sim/Simulation.h"
 
-namespace sim {
+namespace sim::lib {
     class Renderer {
         struct State;
         std::unique_ptr<State> state_;

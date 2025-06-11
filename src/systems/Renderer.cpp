@@ -1,12 +1,12 @@
-#include "sim/systems/Renderer.h"
-#include "sim/components/Transform.h"
-
 #include "raylib-cpp.hpp"
-#include "sim/components/Sprite.h"
+
+#include "sim/lib/systems/Renderer.h"
+#include "sim/lib/components/Transform.h"
+#include "sim/lib/components/Sprite.h"
 
 static constexpr int MARGIN = 10; // Margin around the screen
 
-namespace sim {
+namespace sim::lib {
     struct Renderer::State {
         static constexpr char TITLE[] = "Simulation Renderer";
         static constexpr int WIDTH = 1000 + 2 * MARGIN;

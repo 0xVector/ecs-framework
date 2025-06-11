@@ -5,11 +5,10 @@
 
 #include "sim/Event.h"
 #include "sim/View.h"
-#include "sim/components/Transform.h"
-#include "sim/Types.h"
-#include "sim/components/Targets.h"
+#include "sim/lib/components/Transform.h"
+#include "sim/lib/components/Targets.h"
 
-namespace sim {
+namespace sim::lib {
     struct Movement {
         void operator()(const event::Cycle, Context ctx) const {
             ctx.view<Transform, Movable, Target>()

@@ -2,11 +2,11 @@
 #define INTERACTOR_H
 #include "sim/Event.h"
 #include "sim/View.h"
-#include "sim/components/Interactions.h"
-#include "sim/components/Transform.h"
-#include "sim/utils/TransformUtils.h"
+#include "sim/lib/components/Interactions.h"
+#include "sim/lib/components/Transform.h"
+#include "sim/lib/utils/TransformUtils.h"
 
-namespace sim {
+namespace sim::lib {
     template<typename... Touchables>
     struct TouchableTargets {
         void operator()(const event::Cycle, const Context ctx) const {

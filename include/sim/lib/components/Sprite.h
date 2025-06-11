@@ -1,8 +1,8 @@
 #ifndef SPRITE_H
 #define SPRITE_H
-#include "sim/Types.h"
+#include "sim/lib/components/Transform.h"
 
-namespace sim {
+namespace sim::lib {
     struct Color {
         using color_t = unsigned char; // Color component type (RGBA)
         color_t r = 0, g = 0, b = 0, a = 255;

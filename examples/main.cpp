@@ -1,14 +1,15 @@
 #include <iostream>
 
 #include "sim/Simulation.h"
-#include "sim/components/Sprite.h"
-#include "sim/components/Transform.h"
-#include "sim/systems/Interactor.h"
-#include "sim/systems/Movement.h"
-#include "sim/systems/Renderer.h"
-#include "sim/systems/World.h"
+#include "sim/lib/components/Sprite.h"
+#include "sim/lib/components/Transform.h"
+#include "sim/lib/systems/Interactor.h"
+#include "sim/lib/systems/Movement.h"
+#include "sim/lib/systems/Renderer.h"
+#include "sim/lib/systems/World.h"
 
 using namespace sim;
+using namespace sim::lib;
 
 struct TestSystem {
     void operator()(const event::Cycle, Context ctx) const {
@@ -24,12 +25,13 @@ int main() {
     struct Sheep {};
     struct Wolf {};
 
-    auto s = Simulation<Components<>, Systems<> >()
-            .with_components<>()
-            .with_systems<Movement, WorldBoundary,
-                TargetResolver<Sheep, Grass, Wolf>,
-                TouchableTargets<Sheep, Grass>,
-                Renderer>();
+    auto s = Simulation<
+        Movement, WorldBoundary,
+        TargetResolver<Sheep, Grass, Wolf>,
+        TouchableTargets<Sheep, Grass>,
+        Renderer
+    >();
+
 
     Sprite grass(Color{60, 240, 80});
     Sprite sheep(Color{220, 210, 193});
