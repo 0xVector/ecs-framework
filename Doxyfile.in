@@ -1,7 +1,14 @@
-PROJECT_NAME           = @PROJECT_NAME@
-INPUT                  = @CMAKE_SOURCE_DIR@/include/sim
-OUTPUT_DIRECTORY       = @CMAKE_SOURCE_DIR@/docs
-GENERATE_LATEX         = NO
-QUIET                  = YES
+PROJECT_NAME = @PROJECT_NAME@
+INPUT = @CMAKE_SOURCE_DIR@/include/sim
+OUTPUT_DIRECTORY = @CMAKE_SOURCE_DIR@/docs
+GENERATE_LATEX = NO
+QUIET = YES
+GENERATE_TREEVIEW = YES # optional. Also works without treeview
+DISABLE_INDEX = NO
+FULL_SIDEBAR = NO
 HTML_EXTRA_STYLESHEET = @DOXYGEN_AWESOME_DIR@/doxygen-awesome.css
-HTML_EXTRA_FILES      = @DOXYGEN_AWESOME_DIR@/doxygen-awesome-darkmode-toggle.js
+HTML_EXTRA_FILES = @DOXYGEN_AWESOME_DIR@/doxygen-awesome-darkmode-toggle.js
+HTML_COLORSTYLE = LIGHT # required with Doxygen >= 1.9.5
+HAVE_DOT = YES
+DOT_IMAGE_FORMAT = svg
+DOT_TRANSPARENT = YES
