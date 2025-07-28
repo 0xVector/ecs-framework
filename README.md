@@ -2,6 +2,8 @@
 
 A simple ECS (Entity-Component-System) simulation framework in C++.
 
+[Online Documentation](https://0xvector.me/ecs-framework/)
+
 ## Structure
 
 As in any ECS framework, there are three main elements:
@@ -102,6 +104,7 @@ s.run(100); // Run the simulation for 100 cycles
 
 For doxygen documentation, build the `doc` CMake target.
 Docs [will be available](docs/html/index.html) in the [docs/html/](docs/html) directory.
+The docs are also [hosted online](https://0xvector.me/ecs-framework/).
 
 ## Build and Usage
 
