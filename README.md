@@ -112,6 +112,7 @@ The framework is almost completely header-only, but the renderer is built as a s
 ## Acknowledgements
 
 This framework uses [raylib](https://www.raylib.com/) and [raylib-cpp](https://github.com/RobLoach/raylib-cpp) for the included renderer.
+Docs by [doxygen](https://www.doxygen.org/) with [Doxygen Awesome](https://github.com/jothepro/doxygen-awesome-css) theme.
 
 ## Todo
 
