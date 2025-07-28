@@ -24,10 +24,10 @@ jobs:
           sudo apt-get install -y doxygen graphviz
 
       - name: Configure (docs only)
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DBUILD_DOCS_ONLY=ON
 
       - name: Build target `doc`
-        run: cmake -DBUILD_DOCS_ONLY=ON --build build --target doc -j
+        run: cmake --build build --target doc -j
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
